@@ -5,6 +5,7 @@ import type { ContextoInstitucion } from '../../../shared/contexto.js';
 import { exigirRol } from '../../../shared/autorizacion.js';
 import { Conflicto, NoEncontrado, ReglaDeNegocio } from '../../../shared/errores.js';
 import type { Auditoria } from '../../auditoria/application/registrar-en-bitacora.js';
+import type { CasosDeUsoAgenda } from '../../agenda/application/casos-de-uso.js';
 import { combinar, validarCambios } from '../domain/odontograma.js';
 import { dividirNombre, liberaHorario, relojClinica, siguienteTurnoLibre } from '../domain/recepcion.js';
 import type { RegistroOdontologia } from '../odontologia.registro.js';
@@ -16,6 +17,8 @@ import type { RegistroOdontologia } from '../odontologia.registro.js';
 export function crearCasosDeUsoOdontologia(deps: {
   registro: RegistroOdontologia;
   auditoria: Auditoria;
+  /** API pública del módulo agenda: recepción agenda por ahí, no escribiendo citas a mano. */
+  agenda: Pick<CasosDeUsoAgenda, 'agendar'>;
   /** Reloj inyectable para las pruebas. */
   ahora?: () => Date;
 }) {
@@ -35,7 +38,9 @@ export function crearCasosDeUsoOdontologia(deps: {
       if (!ocupados.has(t.idOdontologo)) ocupados.set(t.idOdontologo, new Set());
       ocupados.get(t.idOdontologo)!.add(t.hora);
     }
-    const libre = siguienteTurnoLibre(odontologos.map((o) => o.id), ocupados, minutos);
+    // Los domingos no hay consulta (regla de agenda): no se ofrece turno.
+    const domingo = new Date(`${fecha}T12:00:00Z`).getUTCDay() === 0;
+    const libre = domingo ? null : siguienteTurnoLibre(odontologos.map((o) => o.id), ocupados, minutos);
 
     return {
       fecha,
@@ -84,13 +89,17 @@ export function crearCasosDeUsoOdontologia(deps: {
         // para que recepción no lo registre dos veces al reintentar.
         if (!siguienteLibre) return { idPaciente, turno: null };
         try {
-          const id = await repo.agendar({
-            idPaciente, idOdontologo: siguienteLibre.idOdontologo, fecha: hoy, hora: siguienteLibre.hora, motivo: input.motivo,
+          // agenda valida el horario, el paciente, el choque (Conflicto) y deja la cita en la bitácora.
+          const { id } = await deps.agenda.agendar(ctx, {
+            idPaciente, idMedico: siguienteLibre.idOdontologo, fecha: hoy, hora: siguienteLibre.hora, motivo: input.motivo,
           });
-          await deps.auditoria.registrar(ctx, 'CREAR', { entidad: 'cita', idRegistro: id, idPaciente });
           return { idPaciente, turno: { id, hora: siguienteLibre.hora, odontologo: siguienteLibre.odontologo } };
         } catch (err) {
-          if (!(err instanceof Conflicto)) throw err;
+          // Otro turno tomó ese horario: se prueba el siguiente.
+          if (err instanceof Conflicto) continue;
+          // Agenda rechazó el turno por una regla: el paciente ya existe, así que se responde sin turno.
+          if (err instanceof ReglaDeNegocio) return { idPaciente, turno: null };
+          throw err;
         }
       }
       return { idPaciente, turno: null };

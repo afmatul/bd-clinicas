@@ -134,7 +134,7 @@ export default function Recepcion() {
         motivo: form.motivo as (typeof MOTIVOS_RECEPCION)[number],
         asignarTurno,
       });
-      if (r.turno) toast('Paciente registrado', `Turno de las ${r.turno.hora} con el ${r.turno.odontologo}.`);
+      if (r.turno) toast('Paciente registrado', `Turno de las ${r.turno.hora} con ${r.turno.odontologo}.`);
       else if (asignarTurno) toast('Paciente registrado', 'Ya no quedan turnos libres hoy. Agéndelo desde Citas.');
       else toast('Paciente registrado', 'Complete su ficha cuando tenga los demás datos.');
       setForm(VACIO);
