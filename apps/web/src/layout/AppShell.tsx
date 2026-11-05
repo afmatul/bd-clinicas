@@ -4,10 +4,10 @@ import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  Baby, Bell, CalendarDays, ChevronsUpDown, ClipboardList, FlaskConical, Hospital, LayoutDashboard,
+  Baby, Bell, CalendarDays, ChevronsUpDown, ClipboardList, FileText, FlaskConical, Hospital, IdCard, LayoutDashboard,
   LogOut, Menu, Moon, Ruler, Search, Smile, Stethoscope, UserPlus, Users, type LucideProps,
 } from 'lucide-react';
-import { INSTITUCIONES, type InstitucionClave } from '@red-clinica/shared';
+import { INSTITUCIONES, type InstitucionClave, type Rol } from '@red-clinica/shared';
 import logo from '@red-clinica/design-system/logos/red-clinica-horizontal.svg';
 import { useSesion } from '../lib/sesion';
 import { useInteraccionesPrototipo } from './useInteraccionesPrototipo';
@@ -19,7 +19,8 @@ const ICONO_INSTITUCION: Record<InstitucionClave, Icono> = {
 };
 
 /** Navegación del prototipo: cada ítem se muestra solo en las instituciones de su data-for. */
-const NAV: { to: string; label: string; icono: Icono; para: InstitucionClave[]; badge?: { n: number; soft?: boolean } }[] = [
+const TODAS: InstitucionClave[] = ['hospital', 'pediatrico', 'laboratorio', 'odontologia'];
+const NAV: { to: string; label: string; icono: Icono; para: InstitucionClave[]; roles?: Rol[]; badge?: { n: number; soft?: boolean } }[] = [
   { to: '/', label: 'Inicio', icono: LayoutDashboard, para: ['hospital', 'pediatrico', 'laboratorio', 'odontologia'] },
   { to: '/pacientes', label: 'Pacientes', icono: Users, para: ['hospital', 'pediatrico', 'laboratorio', 'odontologia'] },
   { to: '/citas', label: 'Citas', icono: CalendarDays, para: ['hospital', 'pediatrico', 'odontologia'], badge: { n: 14, soft: true } },
@@ -27,6 +28,9 @@ const NAV: { to: string; label: string; icono: Icono; para: InstitucionClave[]; 
   { to: '/crecimiento', label: 'Crecimiento y vacunas', icono: Ruler, para: ['pediatrico'] },
   { to: '/laboratorio', label: 'Resultados', icono: FlaskConical, para: ['laboratorio'], badge: { n: 1 } },
   { to: '/recepcion', label: 'Recepción', icono: ClipboardList, para: ['odontologia'] },
+  // Módulos personal y auditoria (sin vista en el prototipo).
+  { to: '/personal', label: 'Personal', icono: IdCard, para: TODAS },
+  { to: '/bitacora', label: 'Bitácora', icono: FileText, para: TODAS, roles: ['AUDITOR', 'ADMIN'] },
 ];
 
 /** "Dra. Ana Lucía Pérez" → "AP": primer nombre + apellido, sin el título. */
@@ -113,7 +117,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
         </div>
         <div className="rc-sidebar__section">
-          {NAV.filter((n) => n.para.includes(inst.clave)).map(({ to, label, icono: Ic, badge }) => (
+          {NAV.filter((n) => n.para.includes(inst.clave) && (!n.roles || n.roles.includes(perfil.usuario.rol))).map(({ to, label, icono: Ic, badge }) => (
             <NavItem key={to} href={to} exacto={to === '/'}>
               <Ic strokeWidth={1.75} aria-hidden="true" />
               {label}

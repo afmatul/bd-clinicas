@@ -19,7 +19,9 @@ for par in aperez:hospital pediatra:pediatrico laboratorio:laboratorio secretari
 
   n=$(curl -sf -b "$cj" "$API/pacientes?q=lopez" | json 'd["total"]')
   [[ $n == 1 ]] && ok "búsqueda sin acentos 'lopez' → $n" || mal "búsqueda 'lopez' devolvió $n"
-  n=$(curl -sf -b "$cj" "$API/pacientes?q=2210774500101" | json 'd["total"]')
+  # Sofía Hernández en hospital, laboratorio y odontológica; en el pediátrico, Valentina López (datos semilla).
+  cui_buscado=2210774500101; [[ $inst == pediatrico ]] && cui_buscado=4123698520101
+  n=$(curl -sf -b "$cj" "$API/pacientes?q=$cui_buscado" | json 'd["total"]')
   [[ $n == 1 ]] && ok "búsqueda por CUI → $n" || mal "búsqueda por CUI devolvió $n"
   n=$(curl -sf -b "$cj" "$API/pacientes?sexo=F" | json 'd["total"]')
   [[ $n -ge 3 ]] && ok "filtro sexo=F → $n" || mal "filtro sexo devolvió $n"
@@ -34,6 +36,30 @@ for par in aperez:hospital pediatra:pediatrico laboratorio:laboratorio secretari
   [[ $code == 409 ]] && ok "CUI repetido → 409" || mal "CUI repetido devolvió $code"
   estado=$(curl -sf -b "$cj" "$API/pacientes/$id" | json 'd["estado"]')
   [[ $estado == ACTIVO ]] && ok "ficha → $estado" || mal "ficha estado $estado"
+
+  # antecedentes: alta, duplicado sin distinguir acentos ni mayúsculas, y lectura en la ficha
+  aid=$(curl -sf -b "$cj" -H 'content-type: application/json' -d '{"tipo":"Penicilina","severidad":"SEVERA"}' "$API/pacientes/$id/alergias" | json 'd["id"]')
+  ok "alergia → id $aid"
+  code=$(curl -s -o /dev/null -w '%{http_code}' -b "$cj" -H 'content-type: application/json' -d '{"tipo":"PENICILINA","severidad":"LEVE"}' "$API/pacientes/$id/alergias")
+  [[ $code == 409 ]] && ok "alergia repetida → 409" || mal "alergia repetida devolvió $code"
+  curl -sf -b "$cj" -H 'content-type: application/json' -d '{"tipo":"Hipertensión arterial"}' "$API/pacientes/$id/antecedentes" >/dev/null && ok "antecedente → 200" || mal "antecedente falló"
+  n=$(curl -sf -b "$cj" "$API/pacientes/$id" | json 'len(d["alergias"]) + len(d["antecedentes"])')
+  [[ $n == 2 ]] && ok "ficha con alergia y antecedente → $n" || mal "ficha trae $n registros clínicos"
+
+  # personal: directorio con sesión y público
+  n=$(curl -sf -b "$cj" "$API/personal" | json 'len(d["items"])')
+  [[ $n -ge 1 ]] && ok "personal → $n profesionales" || mal "personal devolvió $n"
+  n=$(curl -sf "$API/directorio/$inst" | json 'len(d["items"])')
+  [[ $n -ge 1 ]] && ok "directorio público sin sesión → $n" || mal "directorio público devolvió $n"
+
+  # auditoria: "quién vio a este paciente" (MEDICO sí, RECEPCION no)
+  code=$(curl -s -o "$TMP/accesos" -w '%{http_code}' -b "$cj" "$API/auditoria/pacientes/$id/accesos")
+  if [[ $u == secretaria ]]; then
+    [[ $code == 403 ]] && ok "accesos por RECEPCION → 403" || mal "accesos por RECEPCION devolvió $code"
+  else
+    n=$(json 'len(d["items"])' < "$TMP/accesos")
+    [[ $code == 200 && $n -ge 1 ]] && ok "accesos al expediente → $n usuario(s)" || mal "accesos devolvió $code / $n"
+  fi
 
   code=$(curl -s -o /dev/null -w '%{http_code}' -b "$cj" -H 'content-type: application/json' -d '{"motivo":"Traslado a otra institución"}' "$API/pacientes/$id/baja")
   if [[ $u == secretaria ]]; then
@@ -54,7 +80,19 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -H 'content-type: application/json
   -d "{\"username\":\"aperez\",\"password\":\"$PASS\",\"institucion\":\"pediatrico\"}" "$API/auth/login")
 [[ $code == 401 ]] && ok "institución equivocada → 401" || mal "institución equivocada devolvió $code"
 
-for f in aperez pediatra laboratorio secretaria; do unlink "$TMP/$f" 2>/dev/null || true; done
+cj="$TMP/auditor"
+if curl -sf -c "$cj" -H 'content-type: application/json' \
+  -d "{\"username\":\"auditor.hg\",\"password\":\"$PASS\",\"institucion\":\"hospital\"}" "$API/auth/login" >/dev/null; then
+  n=$(curl -sf -b "$cj" "$API/auditoria/bitacora?accion=LEER" | json 'd["total"]')
+  [[ $n -ge 1 ]] && ok "bitácora para AUDITOR → $n lecturas" || mal "bitácora devolvió $n"
+else
+  echo "  · sin usuario auditor.hg: omito la bitácora"
+fi
+code=$(curl -s -o /dev/null -w '%{http_code}' -b "$TMP/aperez" "$API/auditoria/bitacora")
+[[ $code == 403 ]] && ok "bitácora para MEDICO → 403" || mal "bitácora para MEDICO devolvió $code"
+
+unlink "$TMP/accesos" 2>/dev/null || true
+for f in aperez pediatra laboratorio secretaria auditor; do unlink "$TMP/$f" 2>/dev/null || true; done
 rmdir "$TMP"
 echo
 [[ $fallos == 0 ]] && echo "Todo bien: los cuatro motores responden igual." || { echo "$fallos fallo(s)."; exit 1; }

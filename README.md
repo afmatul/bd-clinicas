@@ -43,11 +43,16 @@ scripts/                  Sincronización del design system, verificación de to
 | Módulo | Estado |
 | --- | --- |
 | identidad | Listo: login contra plataforma, bloqueo tras 5 intentos por 15 min, JWT de 8 h, cierre de sesión. |
-| auditoria | Listo para registrar (bitácora solo inserción). Falta la consulta "quién vio a este paciente". |
+| auditoria | Listo: registro (solo inserción) y consultas para AUDITOR: bitácora con filtros, exportación CSV y "quién vio a este paciente". |
 | pacientes | Listo en los 4 motores: búsqueda (CUI, nombre sin acentos, sexo, sangre), ficha, alta, baja lógica. |
-| antecedentes | Lectura de alergias y antecedentes en los 4 motores. Falta registrar. |
-| agenda, atencion, prescripcion, personal | Puertos definidos (`ports/`), sin implementar. |
-| pediatria, odontologia, laboratorio | Puertos definidos, sin implementar. |
+| antecedentes | Listo en los 4 motores: lectura y registro de alergias y antecedentes (sin duplicados, no en pacientes de baja). |
+| personal | Listo en los 4 motores: directorio público, médicos con especialidades, departamentos (hospital) y altas por ADMIN. |
+| odontologia | Listo (CouchDB): recepción del día, registro rápido con turno, llegada y odontograma con historial. Pantalla Recepción conectada. |
+| pediatria | Listo (MySQL): mediciones con percentiles OMS, carné de vacunación y dosis vencidas. Pantallas de crecimiento y vacunas conectadas. |
+| agenda | Listo en los 4 motores: agenda por día/semana/mes, horarios libres, agendar sin choque (lo garantiza cada motor), confirmar, cancelar, inasistencias. |
+| atencion | Listo en los 4 motores: abrir/retomar consulta, borrador, cierre atómico (signos, diagnóstico, tratamiento y receta), historial. |
+| prescripcion | Listo en los 4 motores: catálogo de medicamentos, recetas vigentes e históricas, alerta de alergias al recetar. |
+| laboratorio | Listo en MongoDB: catálogo de tipos, registrar examen, capturar resultados por tipo, validar, listar y ver con interpretación. Pantalla Resultados conectada. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.
 
@@ -58,13 +63,12 @@ Requisitos: Node 22 y Docker.
 ```bash
 cp .env.example .env          # cambie las contraseñas
 npm install
-docker compose up -d          # PostgreSQL (hospital + plataforma), MySQL, MongoDB, CouchDB
-npm run db:seed               # CouchDB, usuarios y pacientes de ejemplo en los 4 motores
+npm run db:reset              # levanta PostgreSQL (hospital + plataforma), MySQL, MongoDB y CouchDB desde cero y carga los datos semilla
 npm run dev:api               # http://localhost:3000
 npm run dev:web               # http://localhost:5173 (Next.js; /api se redirige a la API)
 ```
 
-Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción).
+Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción), entre otros. `npm run db:seed` vuelve a cargar sobre las bases ya levantadas. Qué datos se cargan, la lista completa de usuarios y la forma de los documentos de Mongo y Couch están en [`apps/api/src/scripts/semilla/README.md`](apps/api/src/scripts/semilla/README.md).
 
 Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:web` (cualquier usuario y contraseña; el selector de institución funciona como en el prototipo).
 
@@ -74,6 +78,7 @@ Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:w
 npm run typecheck             # api, web y shared
 npm run check:tokens          # la web no usa colores ni fuentes fuera del design system
 scripts/prueba-paridad.sh     # mismas operaciones, mismo resultado en los 4 motores (API corriendo)
+scripts/prueba-atencion.sh    # agenda → consulta → receta en los 4 motores (médicos con id_personal y medicamentos sembrados)
 ```
 
 ## Design system

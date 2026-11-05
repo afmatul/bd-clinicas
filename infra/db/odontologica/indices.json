@@ -1,5 +1,8 @@
 [
   { "index": { "fields": ["type", "cui"] }, "name": "type-cui", "type": "json" },
   { "index": { "fields": ["type", "apellidos"] }, "name": "type-apellidos", "type": "json" },
-  { "index": { "fields": ["type", "medico_id", "fecha"] }, "name": "type-medico-fecha", "type": "json" }
+  { "index": { "fields": ["type", "medico_id", "fecha"] }, "name": "type-medico-fecha", "type": "json" },
+  { "index": { "fields": ["type", "fecha", "hora"] }, "name": "type-fecha-hora", "type": "json" },
+  { "index": { "fields": ["type", "paciente_id", "fecha"] }, "name": "type-paciente-fecha", "type": "json" },
+  { "index": { "fields": ["type", "paciente_id"] }, "name": "type-paciente", "type": "json" }
 ]

@@ -1,8 +1,82 @@
-// Borrador generado desde prototipo.html (vista "crecimiento") por scripts/prototipo-a-jsx.py.
-import { Baby, ChevronRight, Ruler, ShieldAlert, Syringe, TriangleAlert, Weight } from 'lucide-react';
+'use client';
+// Vista "crecimiento" del prototipo, conectada al módulo pediatria (MySQL):
+// GET /api/pacientes/:id para la ficha y GET /api/pediatria/pacientes/:id para curva, carné y responsables.
+import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
+import { Baby, ChevronRight, CircleX, Ruler, ShieldAlert, Syringe, TriangleAlert, Weight } from 'lucide-react';
+import type { EstadoVacuna, PacienteFicha, SeguimientoPediatrico, VacunaEnCarne } from '@red-clinica/shared';
+import { useSesion } from '../lib/sesion';
+import { useToast } from '../layout/Toasts';
+import { fichaPaciente, seguimientoPediatrico } from '../api/pediatria';
+import { formatoSangre, formatoTelefono, iniciales } from '../datos/formato';
+import { FormularioDosis, FormularioMedicion } from './crecimiento/Formularios';
+import {
+  SEXO, decimal, edadCorta, edadLarga, formatoFecha, percentil, percentilFueraDeRango,
+} from './crecimiento/formato';
 
-export default function Crecimiento() {
+/** Parentescos femeninos, para escribir "tutora legal" como el prototipo. */
+const FEMENINO = new Set(['madre', 'abuela', 'tía', 'hermana', 'tutora', 'madrastra']);
+
+const PILL: Record<EstadoVacuna, [string, string]> = {
+  COMPLETO: ['rc-pill--success', 'Al día'],
+  PENDIENTE: ['rc-pill--warning', 'Dosis pendiente'],
+  ATRASADA: ['rc-pill--danger', 'Atrasada'],
+  SIN_INICIAR: ['', 'Sin iniciar'],
+};
+
+function detalleVacuna(v: VacunaEnCarne): string {
+  if (v.estado === 'COMPLETO') return 'Esquema completo';
+  if (v.estado === 'ATRASADA') return `Dosis ${v.siguienteDosis} vencida el ${formatoFecha(v.proximaFecha)}`;
+  if (v.proximaFecha) return `Próxima: ${formatoFecha(v.proximaFecha)}`;
+  return v.estado === 'SIN_INICIAR' ? 'Sin dosis registradas' : `Falta la dosis ${v.siguienteDosis}`;
+}
+
+function Percentil({ valor, contexto }: { valor: number | null; contexto: string }) {
+  if (valor === null) return <span className="rc-delta__ctx small">Sin percentil · {contexto}</span>;
+  return (
+    <span className={`rc-delta ${percentilFueraDeRango(valor) ? 'rc-delta--down' : 'rc-delta--up'}`}>
+      {percentil(valor)} <span className="rc-delta__ctx">{contexto}</span>
+    </span>
+  );
+}
+
+export default function Crecimiento({ id }: { id: string }) {
+  const { perfil } = useSesion();
+  const toast = useToast();
+  const [ficha, setFicha] = useState<PacienteFicha | null>(null);
+  const [seg, setSeg] = useState<SeguimientoPediatrico | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [modal, setModal] = useState<{ tipo: 'medicion' } | { tipo: 'dosis'; idVacuna?: string } | null>(null);
+
+  const cargarSeguimiento = useCallback(
+    () => seguimientoPediatrico(id).then(setSeg).catch((e: Error) => setError(e.message)),
+    [id],
+  );
+  useEffect(() => {
+    setError(null);
+    fichaPaciente(id).then(setFicha).catch((e: Error) => setError(e.message));
+    void cargarSeguimiento();
+  }, [id, cargarSeguimiento]);
+
+  const nombre = ficha ? `${ficha.nombres} ${ficha.apellidos}` : '';
+  const ultima = seg?.mediciones[0];
+  const atrasadas = seg?.carne.filter((v) => v.estado === 'ATRASADA') ?? [];
+  const deBaja = ficha?.estado === 'BAJA' || !!seg?.baja;
+  const puedeVacunar = !!seg?.carne.some((v) => v.siguienteDosis !== null);
+
+  if (error) {
+    return (
+      <div className="view">
+        <ol className="rc-breadcrumbs" aria-label="Ruta">
+          <li><Link href="/crecimiento">Crecimiento y vacunas</Link><ChevronRight strokeWidth={1.75} aria-hidden="true" /></li>
+        </ol>
+        <div className="rc-alert rc-alert--danger" role="alert">
+          <div className="rc-alert__body"><span className="rc-alert__title">No pudimos abrir el expediente pediátrico</span><span className="rc-alert__text">{error}</span></div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="view">
       <header className="ph">
@@ -11,57 +85,67 @@ export default function Crecimiento() {
             <Link href="/pacientes">Pacientes</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
-          <li><span aria-current="page">Mateo Juárez Coc</span></li>
+          <li><span aria-current="page">{nombre || 'Cargando…'}</span></li>
         </ol>
         <div className="ph__row">
           <div className="ph__text">
-            <h1 className="h1">Mateo Juárez Coc</h1>
-            <p>Centro médico pediátrico · 6 años, 7 meses · Masculino · A+</p>
+            <h1 className="h1">{nombre || <span className="rc-skeleton" style={{ display: 'inline-block', width: '240px', height: '28px' }} />}</h1>
+            <p>
+              {perfil?.institucion.nombre}
+              {ficha && ` · ${edadLarga(ficha.fechaNacimiento)} · ${SEXO[ficha.sexo ?? ''] ?? 'Sexo sin registrar'} · ${formatoSangre(ficha.tipoSangre)}`}
+            </p>
           </div>
           <div className="ph__actions">
-            <button className="rc-btn rc-btn--secondary">
+            <button className="rc-btn rc-btn--secondary" disabled={!seg || deBaja || !puedeVacunar} onClick={() => setModal({ tipo: 'dosis' })}>
               <Syringe strokeWidth={1.75} aria-hidden="true" />
               Registrar vacuna
             </button>
-            <button className="rc-btn rc-btn--primary">
+            <button className="rc-btn rc-btn--primary" disabled={!seg || !ficha || deBaja} onClick={() => setModal({ tipo: 'medicion' })}>
               <Ruler strokeWidth={1.75} aria-hidden="true" />
               Nueva medición
             </button>
           </div>
         </div>
       </header>
+      {seg?.baja && (
+        <div className="rc-alert rc-alert--warning" role="status">
+          <CircleX strokeWidth={1.75} aria-hidden="true" />
+          <div className="rc-alert__body">
+            <span className="rc-alert__title">Expediente de baja desde el {formatoFecha(seg.baja.fecha)}</span>
+            <span className="rc-alert__text">
+              {seg.baja.motivo}{seg.baja.pediatra ? ` · Registrada por ${seg.baja.pediatra}` : ''}. No admite mediciones ni vacunas nuevas.
+            </span>
+          </div>
+        </div>
+      )}
       <div className="split">
         <div className="col">
           <div className="stats three">
             <div className="rc-stat">
               <span className="rc-stat__label">
-                <span className="rc-stat__icon">
-                  <Weight strokeWidth={1.75} aria-hidden="true" />
-                </span>
+                <span className="rc-stat__icon"><Weight strokeWidth={1.75} aria-hidden="true" /></span>
                 Peso
               </span>
-              <span className="rc-stat__value">22.1<small>kg</small></span>
-              <span className="rc-delta rc-delta--up">P62 <span className="rc-delta__ctx">peso para la edad</span></span>
+              <span className="rc-stat__value">{decimal(ultima?.pesoKg ?? null)}<small>kg</small></span>
+              <Percentil valor={ultima?.percentilPesoEdad ?? null} contexto="peso para la edad" />
             </div>
             <div className="rc-stat">
               <span className="rc-stat__label">
-                <span className="rc-stat__icon">
-                  <Ruler strokeWidth={1.75} aria-hidden="true" />
-                </span>
+                <span className="rc-stat__icon"><Ruler strokeWidth={1.75} aria-hidden="true" /></span>
                 Talla
               </span>
-              <span className="rc-stat__value">118.5<small>cm</small></span>
-              <span className="rc-delta rc-delta--up">P58 <span className="rc-delta__ctx">talla para la edad</span></span>
+              <span className="rc-stat__value">{decimal(ultima?.tallaCm ?? null)}<small>cm</small></span>
+              <Percentil valor={ultima?.percentilTallaEdad ?? null} contexto="talla para la edad" />
             </div>
             <div className="rc-stat">
               <span className="rc-stat__label">
-                <span className="rc-stat__icon">
-                  <Baby strokeWidth={1.75} aria-hidden="true" />
-                </span>
+                <span className="rc-stat__icon"><Baby strokeWidth={1.75} aria-hidden="true" /></span>
                 Perímetro cefálico
               </span>
-              <span className="rc-stat__value">51.2<small>cm</small></span>
-              <span className="rc-delta__ctx small">Dentro de lo esperado</span>
+              <span className="rc-stat__value">{decimal(ultima?.perimetroCefalicoCm ?? null)}<small>cm</small></span>
+              <span className="rc-delta__ctx small">
+                {ultima ? `Medido el ${formatoFecha(ultima.fecha)}` : 'Sin mediciones'}
+              </span>
             </div>
           </div>
           <section className="rc-card" style={{ padding: 0, gap: 0 }}>
@@ -84,191 +168,133 @@ export default function Crecimiento() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td className="rc-num">05/11/2026</td>
-                    <td className="rc-num">6 a 7 m</td>
-                    <td className="rc-num">22.1</td>
-                    <td className="rc-num">118.5</td>
-                    <td className="rc-num hide-sm">51.2</td>
-                    <td className="rc-num">P62</td>
-                    <td className="rc-num">P58</td>
-                    <td className="rc-num hide-sm">P64</td>
-                  </tr>
-                  <tr>
-                    <td className="rc-num">06/05/2026</td>
-                    <td className="rc-num">6 a 1 m</td>
-                    <td className="rc-num">20.4</td>
-                    <td className="rc-num">114.0</td>
-                    <td className="rc-num hide-sm">51.0</td>
-                    <td className="rc-num">P58</td>
-                    <td className="rc-num">P55</td>
-                    <td className="rc-num hide-sm">P60</td>
-                  </tr>
-                  <tr>
-                    <td className="rc-num">04/11/2025</td>
-                    <td className="rc-num">5 a 7 m</td>
-                    <td className="rc-num">19.0</td>
-                    <td className="rc-num">110.2</td>
-                    <td className="rc-num hide-sm">50.8</td>
-                    <td className="rc-num">P55</td>
-                    <td className="rc-num">P52</td>
-                    <td className="rc-num hide-sm">P57</td>
-                  </tr>
-                  <tr>
-                    <td className="rc-num">05/05/2025</td>
-                    <td className="rc-num">5 a 1 m</td>
-                    <td className="rc-num">17.8</td>
-                    <td className="rc-num">106.1</td>
-                    <td className="rc-num hide-sm">50.5</td>
-                    <td className="rc-num">P53</td>
-                    <td className="rc-num">P50</td>
-                    <td className="rc-num hide-sm">P55</td>
-                  </tr>
+                  {!seg && Array.from({ length: 4 }, (_, i) => (
+                    <tr key={i}><td colSpan={8}><span className="rc-skeleton" style={{ display: 'block', height: '20px' }} /></td></tr>
+                  ))}
+                  {seg?.mediciones.map((m) => (
+                    <tr key={m.id} title={m.observaciones ?? undefined}>
+                      <td className="rc-num">{formatoFecha(m.fecha)}</td>
+                      <td className="rc-num">{edadCorta(m.edadMeses)}</td>
+                      <td className="rc-num">{decimal(m.pesoKg)}</td>
+                      <td className="rc-num">{decimal(m.tallaCm)}</td>
+                      <td className="rc-num hide-sm">{decimal(m.perimetroCefalicoCm)}</td>
+                      <td className={`rc-num${percentilFueraDeRango(m.percentilPesoEdad) ? ' hi' : ''}`}>{percentil(m.percentilPesoEdad)}</td>
+                      <td className={`rc-num${percentilFueraDeRango(m.percentilTallaEdad) ? ' hi' : ''}`}>{percentil(m.percentilTallaEdad)}</td>
+                      <td className={`rc-num hide-sm${percentilFueraDeRango(m.percentilPesoTalla) ? ' hi' : ''}`}>{percentil(m.percentilPesoTalla)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
+              {seg && seg.mediciones.length === 0 && (
+                <div className="rc-empty">
+                  <span className="rc-empty__icon"><Ruler strokeWidth={1.75} aria-hidden="true" /></span>
+                  <span className="rc-empty__title">Sin mediciones todavía</span>
+                  <span className="rc-empty__text">Registre peso y talla en cada control para ver la curva de crecimiento.</span>
+                </div>
+              )}
             </div>
           </section>
           <section className="rc-card">
             <div className="rc-card__header">
               <h2 className="rc-card__title">Esquema de vacunación</h2>
-              <span className="rc-pill rc-pill--danger">
-                <TriangleAlert strokeWidth={1.75} aria-hidden="true" />
-                1 atrasada
-              </span>
+              {atrasadas.length > 0 && (
+                <span className="rc-pill rc-pill--danger">
+                  <TriangleAlert strokeWidth={1.75} aria-hidden="true" />
+                  {atrasadas.length} {atrasadas.length === 1 ? 'atrasada' : 'atrasadas'}
+                </span>
+              )}
             </div>
             <div className="vaclist">
-              <div className="vac">
-                <div>
-                  <b>BCG</b>
-                  <div className="muted small">Esquema completo</div>
-                </div>
-                <div className="vac__dots" aria-label="1 de 1 dosis"><i className="on" /><span className="rc-num small muted">1 de 1</span></div>
-                <span className="rc-pill rc-pill--success">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Al día
-                </span>
-              </div>
-              <div className="vac">
-                <div>
-                  <b>Hepatitis B</b>
-                  <div className="muted small">Esquema completo</div>
-                </div>
-                <div className="vac__dots" aria-label="3 de 3 dosis">
-                  <i className="on" />
-                  <i className="on" />
-                  <i className="on" />
-                  <span className="rc-num small muted">3 de 3</span>
-                </div>
-                <span className="rc-pill rc-pill--success">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Al día
-                </span>
-              </div>
-              <div className="vac">
-                <div>
-                  <b>Pentavalente</b>
-                  <div className="muted small">Dosis 3 vencida el 12/10/2026</div>
-                </div>
-                <div className="vac__dots" aria-label="2 de 3 dosis">
-                  <i className="on" />
-                  <i className="on" />
-                  <i />
-                  <span className="rc-num small muted">2 de 3</span>
-                </div>
-                <span className="rc-pill rc-pill--danger">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Atrasada
-                </span>
-              </div>
-              <div className="vac">
-                <div>
-                  <b>Polio (IPV/OPV)</b>
-                  <div className="muted small">Próxima: 15/01/2027</div>
-                </div>
-                <div className="vac__dots" aria-label="3 de 4 dosis">
-                  <i className="on" />
-                  <i className="on" />
-                  <i className="on" />
-                  <i />
-                  <span className="rc-num small muted">3 de 4</span>
-                </div>
-                <span className="rc-pill rc-pill--warning">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Dosis pendiente
-                </span>
-              </div>
-              <div className="vac">
-                <div>
-                  <b>SPR</b>
-                  <div className="muted small">Esquema completo</div>
-                </div>
-                <div className="vac__dots" aria-label="2 de 2 dosis">
-                  <i className="on" />
-                  <i className="on" />
-                  <span className="rc-num small muted">2 de 2</span>
-                </div>
-                <span className="rc-pill rc-pill--success">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Al día
-                </span>
-              </div>
-              <div className="vac">
-                <div>
-                  <b>DPT refuerzo</b>
-                  <div className="muted small">Próxima: 12/03/2027</div>
-                </div>
-                <div className="vac__dots" aria-label="1 de 2 dosis"><i className="on" /><i /><span className="rc-num small muted">1 de 2</span></div>
-                <span className="rc-pill rc-pill--warning">
-                  <Syringe strokeWidth={1.75} aria-hidden="true" />
-                  Dosis pendiente
-                </span>
-              </div>
+              {!seg && Array.from({ length: 4 }, (_, i) => <span key={i} className="rc-skeleton" style={{ display: 'block', height: '36px', marginBottom: '8px' }} />)}
+              {seg?.carne.map((v) => {
+                const [clase, texto] = PILL[v.estado];
+                return (
+                  <div className="vac" key={v.id}>
+                    <div>
+                      <b>{v.nombre}</b>
+                      <div className="muted small">{detalleVacuna(v)}</div>
+                    </div>
+                    <div className="vac__dots" aria-label={`${v.dosis.length} de ${v.dosisTotales} dosis`}>
+                      {Array.from({ length: v.dosisTotales }, (_, i) => (
+                        <i key={i} className={i < v.dosis.length ? 'on' : undefined}
+                          title={v.dosis[i] ? `Dosis ${i + 1}: ${formatoFecha(v.dosis[i]!.fechaAplicacion)}` : undefined} />
+                      ))}
+                      <span className="rc-num small muted">{v.dosis.length} de {v.dosisTotales}</span>
+                    </div>
+                    <span className={`rc-pill ${clase}`}>
+                      <Syringe strokeWidth={1.75} aria-hidden="true" />
+                      {texto}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </section>
         </div>
         <aside className="col">
-          <div className="rc-alert rc-alert--danger" role="alert">
-            <Syringe strokeWidth={1.75} aria-hidden="true" />
-            <div className="rc-alert__body">
-              <span className="rc-alert__title">Pentavalente atrasada</span>
-              <span className="rc-alert__text">La dosis 3 debía aplicarse el 12/10/2026.</span>
-              <div className="rc-alert__actions">
-                <button className="rc-btn rc-btn--secondary rc-btn--sm">Aplicar hoy</button>
+          {!deBaja && atrasadas.map((v) => (
+            <div className="rc-alert rc-alert--danger" role="alert" key={v.id}>
+              <Syringe strokeWidth={1.75} aria-hidden="true" />
+              <div className="rc-alert__body">
+                <span className="rc-alert__title">{v.nombre} atrasada</span>
+                <span className="rc-alert__text">La dosis {v.siguienteDosis} debía aplicarse el {formatoFecha(v.proximaFecha)}.</span>
+                <div className="rc-alert__actions">
+                  <button className="rc-btn rc-btn--secondary rc-btn--sm" onClick={() => setModal({ tipo: 'dosis', idVacuna: v.id })}>Aplicar hoy</button>
+                </div>
               </div>
             </div>
-          </div>
+          ))}
           <section className="rc-card">
             <h2 className="rc-card__title">Responsables</h2>
-            <div className="rc-person">
-              <span className="rc-avatar ">AC</span>
-              <div className="rc-person__text">
-                <span className="rc-person__name">Andrea Coc de Juárez</span>
-                <span className="rc-person__meta">Madre · tutora legal · 5521 8890</span>
-              </div>
-            </div>
-            <span className="rc-tag">
-              <ShieldAlert strokeWidth={1.75} aria-hidden="true" />
-              Tutor legal
-            </span>
-            <div className="rc-person">
-              <span className="rc-avatar rc-avatar--neutral">PJ</span>
-              <div className="rc-person__text">
-                <span className="rc-person__name">Pedro Juárez</span>
-                <span className="rc-person__meta">Padre · 4402 1176</span>
-              </div>
-            </div>
+            {!seg && <span className="rc-skeleton" style={{ display: 'block', height: '40px' }} />}
+            {seg?.responsables.length === 0 && <span className="muted small">Sin responsables registrados.</span>}
+            {seg?.responsables.map((r, i) => {
+              const [n = '', ...resto] = r.nombreCompleto.split(' ');
+              const meta = [r.parentesco, r.esTutorLegal ? (FEMENINO.has((r.parentesco ?? '').toLowerCase()) ? 'tutora legal' : 'tutor legal') : null, ...r.telefonos.map(formatoTelefono)].filter(Boolean).join(' · ');
+              return (
+                <div key={r.id} className="col" style={{ gap: 'var(--space-2)' }}>
+                  <div className="rc-person">
+                    <span className={`rc-avatar ${i === 0 ? '' : 'rc-avatar--neutral'}`}>{iniciales(n, resto.join(' '))}</span>
+                    <div className="rc-person__text">
+                      <span className="rc-person__name">{r.nombreCompleto}</span>
+                      <span className="rc-person__meta">{meta}</span>
+                    </div>
+                  </div>
+                  {r.esTutorLegal && (
+                    <span className="rc-tag" style={{ alignSelf: 'flex-start' }}>
+                      <ShieldAlert strokeWidth={1.75} aria-hidden="true" />
+                      Tutor legal
+                    </span>
+                  )}
+                </div>
+              );
+            })}
           </section>
           <section className="rc-card">
             <h2 className="rc-card__title">Alergias</h2>
-            <div className="tags">
-              <span className="rc-tag rc-tag--warning">
-                <TriangleAlert strokeWidth={1.75} aria-hidden="true" />
-                Huevo · moderada
-              </span>
-            </div>
+            {!ficha && <span className="rc-skeleton" style={{ display: 'block', height: '24px' }} />}
+            {ficha && ficha.alergias.length === 0 && <span className="muted small">Sin alergias registradas.</span>}
+            {ficha && ficha.alergias.length > 0 && (
+              <div className="tags">
+                {ficha.alergias.map((a) => (
+                  <span key={a.id} className={`rc-tag ${a.severidad === 'SEVERA' ? 'rc-tag--danger' : 'rc-tag--warning'}`}>
+                    <TriangleAlert strokeWidth={1.75} aria-hidden="true" />
+                    {a.descripcion ?? a.tipo}{a.severidad ? ` · ${a.severidad.toLowerCase()}` : ''}
+                  </span>
+                ))}
+              </div>
+            )}
           </section>
         </aside>
       </div>
+      {modal?.tipo === 'medicion' && ficha && (
+        <FormularioMedicion idPaciente={id} nacimiento={ficha.fechaNacimiento} onCerrar={() => setModal(null)}
+          onGuardada={() => { setModal(null); toast('Medición guardada', `Se agregó al control de crecimiento de ${nombre}.`); void cargarSeguimiento(); }} />
+      )}
+      {modal?.tipo === 'dosis' && seg && (
+        <FormularioDosis idPaciente={id} carne={seg.carne} idVacunaInicial={modal.idVacuna} onCerrar={() => setModal(null)}
+          onGuardada={() => { setModal(null); toast('Vacuna registrada', `Se actualizó el carné de vacunación de ${nombre}.`); void cargarSeguimiento(); }} />
+      )}
     </div>
   );
 }

@@ -1,17 +1,22 @@
 # Módulo `personal`
 
-- **Entidades:** medico / pediatra, departamento, especialidad, medico_especialidad
-- **Operaciones:** Directorio público, asignar especialidades, departamentos
-- **Dónde aplica:** Todas (departamentos y especialidades solo hospital)
-- **Adaptadores:** postgres, mysql, mongo, couch
+- **Entidades:** medico (hospital), pediatra (pediátrico), personal (laboratorio y odontológica); departamento, especialidad y medico_especialidad solo en el hospital.
+- **Adaptadores:** postgres, mysql, mongo, couch.
 
-Estado: puertos definidos en `ports/`, sin casos de uso ni adaptadores todavía.
+| Ruta | Quién | Qué hace |
+| --- | --- | --- |
+| `GET /directorio/:institucion?q=&especialidad=` | Público, sin sesión | Directorio de profesionales de una institución. |
+| `GET /personal?q=&especialidad=` | Sesión | Lo mismo para la institución del usuario (selector de médico en agenda). |
+| `GET /personal/yo` | Sesión | Profesional vinculado al usuario (`usuario.id_personal`). |
+| `GET /personal/especialidades` | Sesión | Catálogo (hospital); Pediatría (pediátrico); nombres distintos (Mongo, Couch). |
+| `GET /personal/departamentos` | Sesión | Departamentos con sus especialidades (solo hospital; vacío en las demás). |
+| `GET /personal/:id` | Sesión | Un profesional. |
+| `POST /personal` | ADMIN | Alta con especialidades, en una transacción en SQL. Bitácora: CREAR. |
+| `PUT/DELETE /personal/:id/especialidades/:idEspecialidad` | ADMIN, hospital | Asigna o quita (tabla puente). Bitácora: MODIFICAR. |
 
-Para implementarlo siga el patrón de `modules/pacientes`:
+Cómo se modela en cada motor:
 
-1. Reglas puras en `domain/`.
-2. Casos de uso en `application/` que reciben `ContextoInstitucion` y piden los repositorios con `registro.para(ctx)`.
-3. Un adaptador por motor en `adapters/<motor>/`.
-4. Sume el puerto a `RepositoriosInstitucion` en `infrastructure/registro-adaptadores.ts`.
-5. Rutas en `adapters/http/rutas.ts` con `requiereSesion(instituciones, 'personal')` y regístrelas en `app.ts`.
-6. Lecturas de ficha, altas, cambios, bajas y exportaciones escriben en la bitácora desde el caso de uso.
+- **PostgreSQL:** `json_agg` sobre `medico_especialidad` para traer médico y especialidades en una consulta.
+- **MySQL:** `pediatra` no tiene especialidades; todos llevan la especialidad implícita `pediatria`.
+- **MongoDB:** colección `personal`, especialidades embebidas como texto; el catálogo es `distinct('especialidades')`.
+- **CouchDB:** documentos `personal:<uuid>` con `type: 'personal'`; búsqueda con Mango y `$regex` con `(*UTF8)`.

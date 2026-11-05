@@ -1,6 +1,6 @@
-import Paciente from '../../../vistas/Paciente';
+import { redirect } from 'next/navigation';
 
-// Borrador: aún muestra los datos del prototipo.
+// La ficha vive en /pacientes/[id]; esta ruta del prototipo lleva a la lista.
 export default function Page() {
-  return <Paciente />;
+  redirect('/pacientes');
 }

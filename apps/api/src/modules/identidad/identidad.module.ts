@@ -17,5 +17,7 @@ import type { Institucion } from './ports/usuario-repository.js';
       inject: [CONEXIONES, INSTITUCIONES, BITACORA],
     },
   ],
+  // Otros módulos la usan para mostrar el nombre de quien firma (p. ej. el laboratorio al validar).
+  exports: [IDENTIDAD],
 })
 export class IdentidadModule {}

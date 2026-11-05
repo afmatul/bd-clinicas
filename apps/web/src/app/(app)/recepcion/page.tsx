@@ -1,6 +1,6 @@
 import Recepcion from '../../../vistas/Recepcion';
 
-// Borrador: aún muestra los datos del prototipo.
+// Conectada a /api/odontologia/recepcion (solo Clínica odontológica).
 export default function Page() {
   return <Recepcion />;
 }

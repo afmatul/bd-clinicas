@@ -17,7 +17,8 @@
     "sync:design-system": "node scripts/sync-design-system.mjs",
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
-    "db:seed": "npm run seed --workspace @red-clinica/api"
+    "db:seed": "npm run seed --workspace @red-clinica/api",
+    "db:reset": "docker compose down -v && docker compose up -d --wait && npm run db:seed"
   },
   "engines": {
     "node": ">=22"

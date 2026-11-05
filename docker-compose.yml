@@ -1,5 +1,5 @@
 # Bases de datos locales: 4 instituciones + plataforma (en el mismo PostgreSQL que el hospital).
-# Uso: cp .env.example .env && docker compose up -d && npm run db:seed
+# Uso: cp .env.example .env && npm run db:reset   (levanta todo desde cero y carga los datos semilla)
 services:
   postgres:
     image: postgres:16-alpine
@@ -43,6 +43,10 @@ services:
     volumes:
       - mongo-data:/data/db
       - ./infra/db/laboratorio/mongo-init.js:/docker-entrypoint-initdb.d/00-init.js:ro
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      retries: 30
 
   couchdb:
     image: couchdb:3.4
@@ -52,6 +56,10 @@ services:
     ports: ["5984:5984"]
     volumes:
       - couch-data:/opt/couchdb/data
+    healthcheck:
+      test: ["CMD", "curl", "-fs", "http://localhost:5984/_up"]
+      interval: 5s
+      retries: 30
 
 volumes:
   pg-data:
