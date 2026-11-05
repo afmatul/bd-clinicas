@@ -18,6 +18,7 @@ import { abrirConexiones } from '../infrastructure/conexiones.js';
 import { RegistroDeAdaptadores } from '../infrastructure/registro-adaptadores.js';
 import type { ContextoInstitucion } from '../shared/contexto.js';
 import { INSTITUCIONES, type InstitucionClave, type RegistrarPacienteInput } from '@red-clinica/shared';
+import { sembrarLaboratorio } from '../modules/laboratorio/adapters/mongo/semilla.js';
 
 const PASSWORD = 'RedClinica2026!';
 const infra = (ruta: string) => fileURLToPath(new URL(`../../../../infra/db/${ruta}`, import.meta.url));
@@ -112,6 +113,9 @@ for (const clave of Object.keys(INSTITUCIONES) as InstitucionClave[]) {
   }
   console.log(`${info.nombre} (${info.motorNombre}): ${nuevos} pacientes nuevos.`);
 }
+
+// 5. Laboratorio clínico: catálogo de tipos de examen, índices y exámenes del prototipo.
+console.log(await sembrarLaboratorio(c.mongo));
 
 await c.cerrar();
 console.log(`\nListo. Inicie sesión con cualquiera de: ${usuarios.map((u) => u[0]).join(', ')} · contraseña ${PASSWORD}`);

@@ -47,7 +47,8 @@ scripts/                  Sincronización del design system, verificación de to
 | pacientes | Listo en los 4 motores: búsqueda (CUI, nombre sin acentos, sexo, sangre), ficha, alta, baja lógica. |
 | antecedentes | Lectura de alergias y antecedentes en los 4 motores. Falta registrar. |
 | agenda, atencion, prescripcion, personal | Puertos definidos (`ports/`), sin implementar. |
-| pediatria, odontologia, laboratorio | Puertos definidos, sin implementar. |
+| laboratorio | Listo en MongoDB: catálogo de tipos, registrar examen, capturar resultados por tipo, validar, listar y ver con interpretación. Pantalla Resultados conectada. |
+| pediatria, odontologia | Puertos definidos, sin implementar. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.
 
