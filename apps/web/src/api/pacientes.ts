@@ -1,6 +1,6 @@
-import type { BuscarPacientesQuery, PacienteResumen } from '@red-clinica/shared';
+import type { BuscarPacientesQuery, PacienteFicha, PacienteResumen, RegistrarPacienteInput } from '@red-clinica/shared';
 import { api } from './cliente';
-import { MODO_DEMO, PACIENTES_DEMO } from '../datos/demo';
+import { FICHA_DEMO, MODO_DEMO, PACIENTES_DEMO } from '../datos/demo';
 
 export interface PaginaPacientes { items: PacienteResumen[]; total: number; pagina: number; porPagina: number }
 
@@ -14,4 +14,15 @@ export async function buscarPacientes(q: Partial<BuscarPacientesQuery>): Promise
     return { items: items.slice((pagina - 1) * porPagina, pagina * porPagina), total: items.length, pagina, porPagina };
   }
   return api<PaginaPacientes>('/pacientes', { query: { ...q, pagina, porPagina } });
+}
+
+/** Ficha completa: datos, contacto, alergias y antecedentes. La lectura queda en la bitácora. */
+export async function obtenerPaciente(id: string): Promise<PacienteFicha> {
+  if (MODO_DEMO) return FICHA_DEMO(id);
+  return api<PacienteFicha>(`/pacientes/${id}`);
+}
+
+export async function registrarPaciente(input: RegistrarPacienteInput): Promise<{ id: string }> {
+  if (MODO_DEMO) return { id: '1' };
+  return api('/pacientes', { method: 'POST', body: input });
 }

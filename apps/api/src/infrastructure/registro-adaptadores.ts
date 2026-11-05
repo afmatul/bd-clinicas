@@ -11,6 +11,11 @@ import { PostgresAntecedenteRepository } from '../modules/antecedentes/adapters/
 import { MysqlAntecedenteRepository } from '../modules/antecedentes/adapters/mysql/antecedente-repository.js';
 import { MongoAntecedenteRepository } from '../modules/antecedentes/adapters/mongo/antecedente-repository.js';
 import { CouchAntecedenteRepository } from '../modules/antecedentes/adapters/couch/antecedente-repository.js';
+import type { PersonalRepository } from '../modules/personal/ports/personal-repository.js';
+import { PostgresPersonalRepository } from '../modules/personal/adapters/postgres/personal-repository.js';
+import { MysqlPersonalRepository } from '../modules/personal/adapters/mysql/personal-repository.js';
+import { MongoPersonalRepository } from '../modules/personal/adapters/mongo/personal-repository.js';
+import { CouchPersonalRepository } from '../modules/personal/adapters/couch/personal-repository.js';
 
 /**
  * Juego de repositorios de una institución. Al agregar un módulo, sume aquí su puerto
@@ -19,6 +24,7 @@ import { CouchAntecedenteRepository } from '../modules/antecedentes/adapters/cou
 export interface RepositoriosInstitucion {
   pacientes: PacienteRepository;
   antecedentes: AntecedenteRepository;
+  personal: PersonalRepository;
   // agenda: CitaRepository; atencion: ConsultaRepository; prescripcion: RecetaRepository; …
 }
 
@@ -31,14 +37,31 @@ export class RegistroDeAdaptadores {
 
   constructor(c: Conexiones) {
     this.porMotor = {
-      postgres: { pacientes: new PostgresPacienteRepository(c.postgres), antecedentes: new PostgresAntecedenteRepository(c.postgres) },
-      mysql: { pacientes: new MysqlPacienteRepository(c.mysql), antecedentes: new MysqlAntecedenteRepository(c.mysql) },
-      mongo: { pacientes: new MongoPacienteRepository(c.mongo), antecedentes: new MongoAntecedenteRepository(c.mongo) },
-      couch: { pacientes: new CouchPacienteRepository(c.couch), antecedentes: new CouchAntecedenteRepository(c.couch) },
+      postgres: {
+        pacientes: new PostgresPacienteRepository(c.postgres),
+        antecedentes: new PostgresAntecedenteRepository(c.postgres),
+        personal: new PostgresPersonalRepository(c.postgres),
+      },
+      mysql: {
+        pacientes: new MysqlPacienteRepository(c.mysql),
+        antecedentes: new MysqlAntecedenteRepository(c.mysql),
+        personal: new MysqlPersonalRepository(c.mysql),
+      },
+      mongo: {
+        pacientes: new MongoPacienteRepository(c.mongo),
+        antecedentes: new MongoAntecedenteRepository(c.mongo),
+        personal: new MongoPersonalRepository(c.mongo),
+      },
+      couch: {
+        pacientes: new CouchPacienteRepository(c.couch),
+        antecedentes: new CouchAntecedenteRepository(c.couch),
+        personal: new CouchPersonalRepository(c.couch),
+      },
     };
   }
 
-  para(ctx: ContextoInstitucion): RepositoriosInstitucion {
+  /** Solo lee la institución: el directorio público de personal lo usa sin usuario en sesión. */
+  para(ctx: Pick<ContextoInstitucion, 'institucion'>): RepositoriosInstitucion {
     return this.porMotor[ctx.institucion.motor];
   }
 }

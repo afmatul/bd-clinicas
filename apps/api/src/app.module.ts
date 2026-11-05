@@ -4,6 +4,9 @@ import { IdentidadModule } from './modules/identidad/identidad.module.js';
 import { PacientesModule } from './modules/pacientes/pacientes.module.js';
 import { OdontologiaModule } from './modules/odontologia/odontologia.module.js';
 import { PediatriaModule } from './modules/pediatria/pediatria.module.js';
+import { AntecedentesModule } from './modules/antecedentes/antecedentes.module.js';
+import { PersonalModule } from './modules/personal/personal.module.js';
+import { AuditoriaModule } from './modules/auditoria/auditoria.module.js';
 
 @Controller()
 class SaludController {
@@ -18,7 +21,7 @@ class SaludController {
  * con sus adaptadores; al implementar agenda, atencion, etc., se agregan aquí.
  */
 @Module({
-  imports: [InfraestructuraModule, IdentidadModule, PacientesModule, OdontologiaModule, PediatriaModule],
+  imports: [InfraestructuraModule, IdentidadModule, PacientesModule, OdontologiaModule, PediatriaModule, AntecedentesModule, PersonalModule, AuditoriaModule],
   controllers: [SaludController],
 })
 export class AppModule {}
