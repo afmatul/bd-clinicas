@@ -50,7 +50,7 @@ scripts/                  Sincronización del design system, verificación de to
 | odontologia | Listo (CouchDB): recepción del día, registro rápido con turno, llegada y odontograma con historial. Pantalla Recepción conectada. |
 | pediatria | Listo (MySQL): mediciones con percentiles OMS, carné de vacunación y dosis vencidas. Pantallas de crecimiento y vacunas conectadas. |
 | agenda, atencion, prescripcion | Puertos definidos (`ports/`), sin implementar. |
-| laboratorio | Puertos definidos, sin implementar. |
+| laboratorio | Listo en MongoDB: catálogo de tipos, registrar examen, capturar resultados por tipo, validar, listar y ver con interpretación. Pantalla Resultados conectada. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.
 

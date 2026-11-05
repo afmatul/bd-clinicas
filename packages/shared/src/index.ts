@@ -6,3 +6,4 @@ export * from './pediatria.js';
 export * from './antecedentes.js';
 export * from './personal.js';
 export * from './auditoria.js';
+export * from './laboratorio.js';
