@@ -47,7 +47,8 @@ scripts/                  Sincronización del design system, verificación de to
 | pacientes | Listo en los 4 motores: búsqueda (CUI, nombre sin acentos, sexo, sangre), ficha, alta, baja lógica. |
 | antecedentes | Lectura de alergias y antecedentes en los 4 motores. Falta registrar. |
 | agenda, atencion, prescripcion, personal | Puertos definidos (`ports/`), sin implementar. |
-| pediatria, odontologia, laboratorio | Puertos definidos, sin implementar. |
+| odontologia | Listo (CouchDB): recepción del día, registro rápido con turno, llegada y odontograma con historial. Pantalla Recepción conectada. |
+| pediatria, laboratorio | Puertos definidos, sin implementar. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.
 

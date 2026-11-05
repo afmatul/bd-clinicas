@@ -12,3 +12,4 @@ export const AUDITORIA = Symbol('Auditoria');
 export const IDENTIDAD = Symbol('Identidad');
 export const CUADRO_CLINICO = Symbol('CuadroClinico');
 export const PACIENTES = Symbol('CasosDeUsoPacientes');
+export const ODONTOLOGIA = Symbol('CasosDeUsoOdontologia');
