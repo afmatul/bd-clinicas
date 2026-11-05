@@ -63,13 +63,12 @@ Requisitos: Node 22 y Docker.
 ```bash
 cp .env.example .env          # cambie las contraseñas
 npm install
-docker compose up -d          # PostgreSQL (hospital + plataforma), MySQL, MongoDB, CouchDB
-npm run db:seed               # CouchDB, usuarios y pacientes de ejemplo en los 4 motores
+npm run db:reset              # levanta PostgreSQL (hospital + plataforma), MySQL, MongoDB y CouchDB desde cero y carga los datos semilla
 npm run dev:api               # http://localhost:3000
 npm run dev:web               # http://localhost:5173 (Next.js; /api se redirige a la API)
 ```
 
-Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción).
+Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción), entre otros. `npm run db:seed` vuelve a cargar sobre las bases ya levantadas. Qué datos se cargan, la lista completa de usuarios y la forma de los documentos de Mongo y Couch están en [`apps/api/src/scripts/semilla/README.md`](apps/api/src/scripts/semilla/README.md).
 
 Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:web` (cualquier usuario y contraseña; el selector de institución funciona como en el prototipo).
 

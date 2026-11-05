@@ -19,7 +19,9 @@ for par in aperez:hospital pediatra:pediatrico laboratorio:laboratorio secretari
 
   n=$(curl -sf -b "$cj" "$API/pacientes?q=lopez" | json 'd["total"]')
   [[ $n == 1 ]] && ok "búsqueda sin acentos 'lopez' → $n" || mal "búsqueda 'lopez' devolvió $n"
-  n=$(curl -sf -b "$cj" "$API/pacientes?q=2210774500101" | json 'd["total"]')
+  # Sofía Hernández en hospital, laboratorio y odontológica; en el pediátrico, Valentina López (datos semilla).
+  cui_buscado=2210774500101; [[ $inst == pediatrico ]] && cui_buscado=4123698520101
+  n=$(curl -sf -b "$cj" "$API/pacientes?q=$cui_buscado" | json 'd["total"]')
   [[ $n == 1 ]] && ok "búsqueda por CUI → $n" || mal "búsqueda por CUI devolvió $n"
   n=$(curl -sf -b "$cj" "$API/pacientes?sexo=F" | json 'd["total"]')
   [[ $n -ge 3 ]] && ok "filtro sexo=F → $n" || mal "filtro sexo devolvió $n"
