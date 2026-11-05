@@ -62,7 +62,7 @@ Requisitos: Node 22 y Docker.
 
 ```bash
 cp .env.example .env          # cambie las contraseñas
-npm install
+npm ci                        # instala exactamente lo del lockfile (ver abajo)
 npm run db:reset              # levanta PostgreSQL (hospital + plataforma), MySQL, MongoDB y CouchDB desde cero y carga los datos semilla
 npm run dev:api               # http://localhost:3000
 npm run dev:web               # http://localhost:5173 (Next.js; /api se redirige a la API)
@@ -79,7 +79,24 @@ npm run typecheck             # api, web y shared
 npm run check:tokens          # la web no usa colores ni fuentes fuera del design system
 scripts/prueba-paridad.sh     # mismas operaciones, mismo resultado en los 4 motores (API corriendo)
 scripts/prueba-atencion.sh    # agenda → consulta → receta en los 4 motores (médicos con id_personal y medicamentos sembrados)
+npm run audit:deps            # vulnerabilidades conocidas y firmas de los paquetes
 ```
+
+### Instalar dependencias de forma segura
+
+Los ataques a la cadena de suministro de npm (por ejemplo, el gusano Shai-Hulud de 2025) publican versiones nuevas de paquetes populares con código que se ejecuta al instalarlas y roba tokens de GitHub, claves de la nube y archivos `.env` de la máquina. El repositorio está configurado para reducir ese riesgo:
+
+- **Versiones fijas.** Todas las dependencias están fijadas a una versión exacta en `package.json` y `package-lock.json` está versionado con los hashes de integridad. `.npmrc` tiene `save-exact=true`, así que lo que se agregue también queda fijo.
+- **Sin scripts de instalación.** `.npmrc` tiene `ignore-scripts=true`: npm no ejecuta `preinstall`/`postinstall` de paquetes de terceros, que es por donde entra el código malicioso. Los scripts propios (`npm run dev`, `npm run build`…) siguen funcionando. Ningún paquete actual necesita su script de instalación (esbuild y Next.js traen binarios precompilados).
+- **Revisión automática.** El workflow `.github/workflows/dependencias.yml` corre en cada PR: `npm ci`, `npm audit`, `npm audit signatures` y `typecheck`.
+
+Reglas para el equipo:
+
+1. Instale siempre con `npm ci`, no con `npm install`. `npm ci` falla si `package.json` y el lockfile no coinciden en vez de traer versiones nuevas sin avisar.
+2. Para agregar o actualizar un paquete, use una versión publicada hace al menos una semana (`npm view <paquete> time`) y revise el cambio en `package-lock.json` dentro del PR. Los paquetes comprometidos suelen detectarse y retirarse en pocos días.
+3. No guarde credenciales reales en este proyecto ni en la máquina donde lo instala si puede evitarlo: aquí solo hacen falta las contraseñas locales de Docker de `.env`, que nunca se sube (`.gitignore` excluye `.env` y `.env.*` salvo `.env.example`).
+4. Si un paquete nuevo necesita su script de instalación, ejecútelo de forma explícita y revisada (`npm rebuild <paquete> --ignore-scripts=false`) en lugar de desactivar la protección.
+5. Para aislar todavía más, instale y ejecute dentro de un contenedor: `docker run --rm -it -v "$PWD":/app -w /app node:22 npm ci`.
 
 ## Design system
 
