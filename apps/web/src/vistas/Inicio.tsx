@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "inicio") por scripts/prototipo-a-jsx.py.
 import { Bed, CalendarDays, Check, CircleCheck, Clock, FlaskConical, MoreVertical, Plus, Search, TrendingUp, Users } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Inicio() {
   return (
@@ -12,11 +12,11 @@ export default function Inicio() {
             <p>Jueves 5 de noviembre de 2026 · Medicina interna · Hospital general</p>
           </div>
           <div className="ph__actions">
-            <Link className="rc-btn rc-btn--secondary" to="/pacientes">
+            <Link className="rc-btn rc-btn--secondary" href="/pacientes">
               <Search strokeWidth={1.75} aria-hidden="true" />
               Buscar paciente
             </Link>
-            <Link className="rc-btn rc-btn--primary" to="/nueva-cita">
+            <Link className="rc-btn rc-btn--primary" href="/nueva-cita">
               <Plus strokeWidth={1.75} aria-hidden="true" />
               Nueva cita
             </Link>
@@ -79,7 +79,7 @@ export default function Inicio() {
               <h2 className="rc-card__title">Agenda de hoy</h2>
               <p className="rc-card__sub">6 de 14 citas · próxima a las 09:00</p>
             </div>
-            <Link className="rc-link" to="/citas">Ver agenda</Link>
+            <Link className="rc-link" href="/citas">Ver agenda</Link>
           </div>
           <div className="rc-table-wrap flat">
             <table className="rc-table">
@@ -242,7 +242,7 @@ export default function Inicio() {
               <span className="rc-alert__title">Valor crítico de laboratorio</span>
               <span className="rc-alert__text">Potasio 6.4 mmol/L en Sofía Hernández. Validado hace 12 min.</span>
               <div className="rc-alert__actions">
-                <Link className="rc-btn rc-btn--secondary rc-btn--sm" to="/laboratorio">Ver resultado</Link>
+                <Link className="rc-btn rc-btn--secondary rc-btn--sm" href="/laboratorio">Ver resultado</Link>
               </div>
             </div>
           </div>

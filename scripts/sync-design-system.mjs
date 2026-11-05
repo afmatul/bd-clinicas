@@ -4,7 +4,7 @@
 // Fuente: la carpeta design-system/ del proyecto (por defecto ../design-system,
 // o la ruta en DESIGN_SYSTEM_DIR). Destino: packages/design-system/.
 //
-// - tokens.css, tokens.json, components.css, logos/ e iconos/ se copian tal cual.
+// - tokens.css, tokens.json, components.css, motion.css, logos/ e iconos/ se copian tal cual.
 // - layout.css se extrae de prototipo.html: es el CSS de páginas del prototipo
 //   (shell, login, tarjetas de signos, agenda…) sin los tokens ni los componentes,
 //   que ya vienen en sus propios archivos. Así las pantallas de la web usan las
@@ -26,7 +26,7 @@ if (!existsSync(join(src, 'tokens.css'))) {
 }
 mkdirSync(dest, { recursive: true });
 
-for (const f of ['tokens.css', 'tokens.json', 'components.css']) cpSync(join(src, f), join(dest, f));
+for (const f of ['tokens.css', 'tokens.json', 'components.css', 'motion.css']) cpSync(join(src, f), join(dest, f));
 for (const d of ['logos', 'iconos']) cpSync(join(src, d), join(dest, d), { recursive: true });
 
 // --- layout.css desde prototipo.html ---

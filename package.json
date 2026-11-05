@@ -3,7 +3,10 @@
   "private": true,
   "version": "0.1.0",
   "description": "Plataforma de historiales clínicos para cuatro instituciones médicas, cada una con su propio motor de base de datos.",
-  "workspaces": ["packages/*", "apps/*"],
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspace @red-clinica/api & npm run dev --workspace @red-clinica/web",
     "dev:api": "npm run dev --workspace @red-clinica/api",
@@ -16,5 +19,11 @@
     "db:down": "docker compose down",
     "db:seed": "npm run seed --workspace @red-clinica/api"
   },
-  "engines": { "node": ">=22" }
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0"
+  }
 }

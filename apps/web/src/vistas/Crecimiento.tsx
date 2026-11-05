@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "crecimiento") por scripts/prototipo-a-jsx.py.
 import { Baby, ChevronRight, Ruler, ShieldAlert, Syringe, TriangleAlert, Weight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Crecimiento() {
   return (
@@ -8,7 +8,7 @@ export default function Crecimiento() {
       <header className="ph">
         <ol className="rc-breadcrumbs" aria-label="Ruta">
           <li>
-            <Link to="/pacientes">Pacientes</Link>
+            <Link href="/pacientes">Pacientes</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li><span aria-current="page">Mateo Juárez Coc</span></li>

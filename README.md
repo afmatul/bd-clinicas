@@ -14,18 +14,23 @@ Plataforma de historiales clínicos para cuatro instituciones médicas independi
 
 ```
 apps/
-  api/                    Fastify + TypeScript. Monolito modular, hexagonal por módulo.
+  api/                    NestJS (sobre Fastify) + TypeScript. Monolito modular, hexagonal por módulo.
     src/
-      app.ts              Raíz de composición: conecta puertos con adaptadores.
+      app.module.ts       Raíz de composición: un módulo de Nest por módulo de dominio.
+      tokens.ts           Tokens de inyección; los casos de uso se registran con useFactory.
       infrastructure/     Conexiones (abiertas una vez) y RegistroDeAdaptadores (motor → repositorios).
-      http/               Sesión (JWT en cookie httpOnly → ContextoInstitucion) y manejo de errores.
+      http/               SesionGuard (JWT en cookie httpOnly → ContextoInstitucion), @Modulo y filtro de errores.
       shared/             Contexto, errores de dominio, autorización por rol.
       modules/<módulo>/
         domain/           Reglas puras.
         application/      Casos de uso; solo conocen puertos.
         ports/            Interfaces (PacienteRepository…).
-        adapters/         postgres/ mysql/ mongo/ couch/ y http/.
-  web/                    React + Vite. Pantallas convertidas del prototipo del design system.
+        adapters/         postgres/ mysql/ mongo/ couch/ y http/ (controladores de Nest).
+        <módulo>.module.ts Conecta puertos con adaptadores.
+  web/                    Next.js (App Router) + React 19. Pantallas convertidas del prototipo.
+    src/app/              Rutas; (app)/ requiere sesión y monta el shell.
+    src/vistas/           Una vista por pantalla del prototipo.
+    src/layout/           AppShell (sidebar + topbar) y toasts.
 packages/
   shared/                 Contratos zod compartidos por api y web (DTOs, instituciones, roles).
   design-system/          Copia sincronizada del design system (no editar a mano).
@@ -56,12 +61,12 @@ npm install
 docker compose up -d          # PostgreSQL (hospital + plataforma), MySQL, MongoDB, CouchDB
 npm run db:seed               # CouchDB, usuarios y pacientes de ejemplo en los 4 motores
 npm run dev:api               # http://localhost:3000
-npm run dev:web               # http://localhost:5173
+npm run dev:web               # http://localhost:5173 (Next.js; /api se redirige a la API)
 ```
 
 Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción).
 
-Para revisar el diseño sin bases de datos: `VITE_DEMO=true npm run dev:web` (cualquier usuario y contraseña; el selector de institución funciona como en el prototipo).
+Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:web` (cualquier usuario y contraseña; el selector de institución funciona como en el prototipo).
 
 ### Verificaciones
 
@@ -78,12 +83,13 @@ El design system **Red Clínica** es la única fuente de diseño. La web importa
 1. `tokens.css`: colores, tipografía, espacios, radios, sombras (tema claro y oscuro).
 2. `components.css`: componentes `rc-*`.
 3. `layout.css`: CSS de páginas extraído de `prototipo.html` (shell, login, signos vitales, agenda…).
+4. `motion.css`: animaciones (entrada de página en cascada, filas de tabla, menús, toasts, modales, respuesta de botones) con los tokens `--duration-*`; se apagan con `prefers-reduced-motion`.
 
 Reglas:
 
 - No se agregan hojas de estilo en `apps/web/src` ni colores o fuentes literales; `npm run check:tokens` falla si aparecen. Los estilos en línea solo usan `var(--token)` o medidas que ya trae el prototipo.
 - Para cambiar el diseño, cambie el design system y corra `npm run sync:design-system` (por defecto lee `../design-system`; use `DESIGN_SYSTEM_DIR=/ruta` si está en otro lugar).
-- Las pantallas salen del prototipo: `scripts/prototipo-a-jsx.py` convirtió cada vista a JSX con el mismo markup y los iconos Lucide equivalentes. Las páginas marcadas como borrador en `apps/web/src/app/App.tsx` aún muestran los datos del mockup; se conectan a la API a medida que se implementa cada módulo.
+- Las pantallas salen del prototipo: `scripts/prototipo-a-jsx.py` convirtió cada vista a JSX con el mismo markup y los iconos Lucide equivalentes. Las páginas marcadas como borrador en `apps/web/src/app/(app)/*/page.tsx` aún muestran los datos del mockup; se conectan a la API a medida que se implementa cada módulo.
 
 ## Decisiones pendientes
 

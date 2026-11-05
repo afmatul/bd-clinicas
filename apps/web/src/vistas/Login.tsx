@@ -1,9 +1,11 @@
-import { useState, type FormEvent } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+'use client';
+
+import { useEffect, useState, type FormEvent } from 'react';
+import { useRouter } from 'next/navigation';
 import { Baby, ChevronDown, CircleAlert, FlaskConical, Hospital, Lock, Smile, User } from 'lucide-react';
 import { INSTITUCIONES, type InstitucionClave } from '@red-clinica/shared';
 import logo from '@red-clinica/design-system/logos/red-clinica-horizontal.svg';
-import { useSesion } from '../app/sesion';
+import { useSesion } from '../lib/sesion';
 import { ApiError } from '../api/cliente';
 import { MODO_DEMO } from '../datos/demo';
 
@@ -13,12 +15,12 @@ const leerRecordado = () => { try { return localStorage.getItem(RECORDAR) ?? '';
 /** Vista "login" del prototipo, conectada a POST /api/auth/login. */
 export default function Login() {
   const { perfil, iniciarSesion } = useSesion();
-  const navigate = useNavigate();
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
-  const recordado = leerRecordado();
-
-  if (perfil) return <Navigate to="/" replace />;
+  const [recordado, setRecordado] = useState('');
+  useEffect(() => setRecordado(leerRecordado()), []);
+  useEffect(() => { if (perfil) router.replace('/'); }, [perfil, router]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -31,7 +33,7 @@ export default function Login() {
     try {
       await iniciarSesion({ username, password, institucion: f.get('institucion') as InstitucionClave });
       try { if (f.get('recordar')) localStorage.setItem(RECORDAR, username); else localStorage.removeItem(RECORDAR); } catch { /* sin almacenamiento */ }
-      navigate('/', { replace: true });
+      router.replace('/');
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'No pudimos conectar con el servidor. Revise que la API esté corriendo.');
     } finally {
@@ -43,7 +45,7 @@ export default function Login() {
     <div className="login">
       <div className="login__brand">
         <div>
-          <img src={logo} alt="Red Clínica" style={{ height: '34px', width: 'auto' }} />
+          <img src={logo.src} alt="Red Clínica" style={{ height: '34px', width: 'auto' }} />
         </div>
         <div className="login__claim">
           <h2>Un solo historial clínico para cuatro instituciones.</h2>
@@ -83,7 +85,7 @@ export default function Login() {
             <label className="rc-label" htmlFor="lg2">Usuario <span className="rc-req" aria-hidden="true">*</span></label>
             <div className={`rc-control${error ? ' is-error' : ''}`}>
               <User strokeWidth={1.75} aria-hidden="true" />
-              <input className="rc-input" id="lg2" name="username" autoComplete="username" defaultValue={recordado || (MODO_DEMO ? 'aperez' : '')} aria-invalid={!!error} />
+              <input className="rc-input" id="lg2" name="username" autoComplete="username" key={recordado} defaultValue={recordado || (MODO_DEMO ? 'aperez' : '')} aria-invalid={!!error} />
             </div>
           </div>
           <div className="rc-field">
@@ -95,7 +97,7 @@ export default function Login() {
           </div>
           <div className="row between">
             <label className="rc-check">
-              <input type="checkbox" name="recordar" defaultChecked={!!recordado} />
+              <input type="checkbox" name="recordar" key={`r${recordado}`} defaultChecked={!!recordado} />
               <span>Recordar usuario</span>
             </label>
             <button type="button" className="rc-link small" data-toast="Contacte a su administrador|Él puede restablecer su contraseña desde la base plataforma.">Olvidé mi contraseña</button>

@@ -11,9 +11,9 @@ export const PACIENTES_DEMO: PacienteResumen[] = [
   { id: '7', cui: '2066550180901', nombres: 'Elena', apellidos: 'Pac Xicará', fechaNacimiento: '1955-06-05', sexo: 'F', tipoSangre: 'A-', telefono: null, estado: 'BAJA' },
 ];
 
-export const MODO_DEMO = import.meta.env.VITE_DEMO === 'true';
+export const MODO_DEMO = process.env.NEXT_PUBLIC_DEMO === 'true';
 
-/** Perfil de ejemplo para revisar las pantallas sin API (VITE_DEMO=true). */
+/** Perfil de ejemplo para revisar las pantallas sin API (NEXT_PUBLIC_DEMO=true). */
 export function perfilDemo(clave: InstitucionClave = 'hospital'): Perfil {
   const i = INSTITUCIONES[clave];
   return {

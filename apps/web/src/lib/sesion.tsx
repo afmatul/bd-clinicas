@@ -1,3 +1,5 @@
+'use client';
+
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { InstitucionClave, LoginInput, Perfil } from '@red-clinica/shared';
 import { api, ApiError } from '../api/cliente';

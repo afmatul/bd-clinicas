@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "citas") por scripts/prototipo-a-jsx.py.
 import { Check, ChevronDown, ChevronLeft, ChevronRight, CircleCheck, Clock, Plus, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Citas() {
   return (
@@ -12,7 +12,7 @@ export default function Citas() {
             <p>Jueves 5 de noviembre de 2026 · Dra. Ana Lucía Pérez</p>
           </div>
           <div className="ph__actions">
-            <Link className="rc-btn rc-btn--primary" to="/nueva-cita">
+            <Link className="rc-btn rc-btn--primary" href="/nueva-cita">
               <Plus strokeWidth={1.75} aria-hidden="true" />
               Nueva cita
             </Link>
@@ -55,7 +55,7 @@ export default function Citas() {
         <section className="rc-card agenda">
           <div className="slot is-free">
             <span className="slot__h rc-num">07:30</span>
-            <Link className="slot__b free" to="/nueva-cita">
+            <Link className="slot__b free" href="/nueva-cita">
               <Plus strokeWidth={1.75} aria-hidden="true" />
               Disponible · agendar
             </Link>
@@ -152,7 +152,7 @@ export default function Citas() {
           </div>
           <div className="slot is-free">
             <span className="slot__h rc-num">11:00</span>
-            <Link className="slot__b free" to="/nueva-cita">
+            <Link className="slot__b free" href="/nueva-cita">
               <Plus strokeWidth={1.75} aria-hidden="true" />
               Disponible · agendar
             </Link>
@@ -175,7 +175,7 @@ export default function Citas() {
           </div>
           <div className="slot is-free">
             <span className="slot__h rc-num">12:00</span>
-            <Link className="slot__b free" to="/nueva-cita">
+            <Link className="slot__b free" href="/nueva-cita">
               <Plus strokeWidth={1.75} aria-hidden="true" />
               Disponible · agendar
             </Link>

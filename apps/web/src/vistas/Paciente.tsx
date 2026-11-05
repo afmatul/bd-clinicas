@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "paciente") por scripts/prototipo-a-jsx.py.
 import { Activity, CalendarDays, ChevronRight, ClipboardList, Droplet, FlaskConical, HeartPulse, History, Loader2, Pill, ShieldAlert, Stethoscope, Thermometer, TriangleAlert, Users, Weight, Wind } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Paciente() {
   return (
@@ -8,7 +8,7 @@ export default function Paciente() {
       <header className="ph">
         <ol className="rc-breadcrumbs" aria-label="Ruta">
           <li>
-            <Link to="/pacientes">Pacientes</Link>
+            <Link href="/pacientes">Pacientes</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li><span aria-current="page">María José López Ramírez</span></li>
@@ -19,11 +19,11 @@ export default function Paciente() {
             <p>Exp. HG-2026-004812 · CUI 2547 88120 0101 · 34 años · Femenino · O+</p>
           </div>
           <div className="ph__actions">
-            <Link className="rc-btn rc-btn--secondary" to="/nueva-cita">
+            <Link className="rc-btn rc-btn--secondary" href="/nueva-cita">
               <CalendarDays strokeWidth={1.75} aria-hidden="true" />
               Agendar cita
             </Link>
-            <Link className="rc-btn rc-btn--primary" to="/consulta">
+            <Link className="rc-btn rc-btn--primary" href="/consulta">
               <Stethoscope strokeWidth={1.75} aria-hidden="true" />
               Iniciar consulta
             </Link>
@@ -132,7 +132,7 @@ export default function Paciente() {
           <section className="rc-card" style={{ padding: 0, gap: 0 }}>
             <div className="card-h">
               <h2 className="rc-card__title">Consultas recientes</h2>
-              <Link className="rc-link" to="/paciente">Ver las 12</Link>
+              <Link className="rc-link" href="/paciente">Ver las 12</Link>
             </div>
             <div className="rc-table-wrap flat">
               <table className="rc-table">

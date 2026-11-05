@@ -1,12 +1,15 @@
-import { useEffect, useState, type ComponentType } from 'react';
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
+'use client';
+
+import { useEffect, useState, type ComponentType, type ReactNode } from 'react';
+import Link from 'next/link';
+import { usePathname, useRouter } from 'next/navigation';
 import {
   Baby, Bell, CalendarDays, ChevronsUpDown, ClipboardList, FlaskConical, Hospital, LayoutDashboard,
   LogOut, Menu, Moon, Ruler, Search, Smile, Stethoscope, UserPlus, Users, type LucideProps,
 } from 'lucide-react';
 import { INSTITUCIONES, type InstitucionClave } from '@red-clinica/shared';
 import logo from '@red-clinica/design-system/logos/red-clinica-horizontal.svg';
-import { useSesion } from '../app/sesion';
+import { useSesion } from '../lib/sesion';
 import { useInteraccionesPrototipo } from './useInteraccionesPrototipo';
 
 type Icono = ComponentType<LucideProps>;
@@ -32,16 +35,24 @@ const iniciales = (nombre: string) => {
   return `${p[0]?.[0] ?? ''}${p.length > 1 ? p[p.length - 1]![0] : ''}`.toUpperCase();
 };
 
-/** Shell de la app: sidebar + topbar del prototipo. Las páginas se pintan en <Outlet />. */
-export function AppShell() {
+/** Enlace de navegación con aria-current="page" cuando su ruta está activa (como en el prototipo). */
+function NavItem({ href, exacto, children }: { href: string; exacto?: boolean; children: ReactNode }) {
+  const ruta = usePathname();
+  const activo = exacto ? ruta === href : ruta === href || ruta.startsWith(`${href}/`);
+  return <Link className="rc-nav-item" href={href} aria-current={activo ? 'page' : undefined}>{children}</Link>;
+}
+
+/** Shell de la app: sidebar + topbar del prototipo. Las páginas se pintan en children. */
+export function AppShell({ children }: { children: ReactNode }) {
   const { perfil, cerrarSesion, cambiarInstitucionDemo } = useSesion();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const router = useRouter();
+  const pathname = usePathname();
+  const navigate = (r: string) => router.push(r);
   const [navAbierta, setNavAbierta] = useState(false);
   const [menuInst, setMenuInst] = useState(false);
   useInteraccionesPrototipo();
 
-  useEffect(() => { setNavAbierta(false); window.scrollTo(0, 0); }, [location.pathname]);
+  useEffect(() => { setNavAbierta(false); window.scrollTo(0, 0); }, [pathname]);
   useEffect(() => {
     if (!menuInst) return;
     const cerrar = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('.instwrap')) setMenuInst(false); };
@@ -64,7 +75,7 @@ export function AppShell() {
     <div className={`app${navAbierta ? ' nav-open' : ''}`}>
       <nav className="rc-sidebar" aria-label="Principal">
         <div className="rc-sidebar__brand">
-          <img src={logo} alt="Red Clínica" style={{ height: '28px', width: 'auto' }} />
+          <img src={logo.src} alt="Red Clínica" style={{ height: '28px', width: 'auto' }} />
         </div>
         <div className="instwrap">
           <button
@@ -103,19 +114,19 @@ export function AppShell() {
         </div>
         <div className="rc-sidebar__section">
           {NAV.filter((n) => n.para.includes(inst.clave)).map(({ to, label, icono: Ic, badge }) => (
-            <NavLink key={to} className="rc-nav-item" to={to} end={to === '/'}>
+            <NavItem key={to} href={to} exacto={to === '/'}>
               <Ic strokeWidth={1.75} aria-hidden="true" />
               {label}
               {badge && <span className={`rc-badge${badge.soft ? ' rc-badge--soft' : ''}`}>{badge.n}</span>}
-            </NavLink>
+            </NavItem>
           ))}
         </div>
         <div className="rc-sidebar__section">
           <span className="rc-overline">Cuenta</span>
-          <NavLink className="rc-nav-item" to="/registrar">
+          <NavItem href="/registrar">
             <UserPlus strokeWidth={1.75} aria-hidden="true" />
             Registrar paciente
-          </NavLink>
+          </NavItem>
           <button className="rc-nav-item" style={{ border: 0, background: 'none', width: '100%', font: 'inherit', textAlign: 'left' }}
             onClick={async () => { await cerrarSesion(); navigate('/login'); }}>
             <LogOut strokeWidth={1.75} aria-hidden="true" />
@@ -158,7 +169,7 @@ export function AppShell() {
           <span className="rc-avatar rc-avatar--sm rc-avatar--solid">{ini}</span>
         </div>
         <main className="content">
-          <Outlet />
+          {children}
         </main>
       </div>
     </div>

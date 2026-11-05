@@ -8,6 +8,7 @@
     "./tokens.css": "./tokens.css",
     "./components.css": "./components.css",
     "./layout.css": "./layout.css",
+    "./motion.css": "./motion.css",
     "./tokens.json": "./tokens.json",
     "./logos/*": "./logos/*",
     "./iconos/*": "./iconos/*"

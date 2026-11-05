@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "nueva-cita") por scripts/prototipo-a-jsx.py.
 import { CalendarDays, ChevronDown, ChevronRight, Info, Search, ShieldAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function NuevaCita() {
   return (
@@ -8,7 +8,7 @@ export default function NuevaCita() {
       <header className="ph">
         <ol className="rc-breadcrumbs" aria-label="Ruta">
           <li>
-            <Link to="/citas">Citas</Link>
+            <Link href="/citas">Citas</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li><span aria-current="page">Nueva cita</span></li>
@@ -96,7 +96,7 @@ export default function NuevaCita() {
             </div>
           </div>
           <div className="rc-card__footer">
-            <Link className="rc-btn rc-btn--ghost" to="/citas">Cancelar</Link>
+            <Link className="rc-btn rc-btn--ghost" href="/citas">Cancelar</Link>
             <button className="rc-btn rc-btn--primary" data-toast="Cita programada|Lunes 9 de noviembre, 08:30 con la Dra. Pérez.">Guardar cita</button>
           </div>
         </section>

@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "consulta") por scripts/prototipo-a-jsx.py.
 import { Check, ChevronDown, ChevronRight, Minus, Plus, Search, Trash2, TriangleAlert } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Consulta() {
   return (
@@ -8,11 +8,11 @@ export default function Consulta() {
       <header className="ph">
         <ol className="rc-breadcrumbs" aria-label="Ruta">
           <li>
-            <Link to="/pacientes">Pacientes</Link>
+            <Link href="/pacientes">Pacientes</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li>
-            <Link to="/paciente">María José López Ramírez</Link>
+            <Link href="/paciente">María José López Ramírez</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li><span aria-current="page">Consulta</span></li>
@@ -256,7 +256,7 @@ export default function Consulta() {
           </table>
         </div>
         <div className="rc-card__footer">
-          <Link className="rc-btn rc-btn--ghost" to="/paciente">Guardar borrador</Link>
+          <Link className="rc-btn rc-btn--ghost" href="/paciente">Guardar borrador</Link>
           <button className="rc-btn rc-btn--primary" data-toast="Consulta cerrada|Diagnóstico, tratamiento y receta quedaron registrados.">
             <Check strokeWidth={1.75} aria-hidden="true" />
             Cerrar consulta

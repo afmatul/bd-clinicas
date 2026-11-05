@@ -1,9 +1,11 @@
+'use client';
 // Vista "pacientes" del prototipo, conectada a GET /api/pacientes (mismo JSON en los cuatro motores).
 import { useEffect, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
+import Link from 'next/link';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Download, MoreVertical, Search, UserPlus, Users } from 'lucide-react';
 import type { EstadoPaciente } from '@red-clinica/shared';
-import { useSesion } from '../app/sesion';
+import { useSesion } from '../lib/sesion';
 import { buscarPacientes, type PaginaPacientes } from '../api/pacientes';
 import { edad, formatoCui, formatoNumero, formatoSangre, formatoTelefono, iniciales, varianteAvatar } from '../datos/formato';
 
@@ -20,7 +22,9 @@ function paginas(actual: number, total: number): (number | '…')[] {
 
 export default function Pacientes() {
   const { perfil } = useSesion();
-  const [params, setParams] = useSearchParams();
+  const params = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const q = params.get('q') ?? '';
   const estado = (params.get('estado') as EstadoPaciente | null) ?? undefined;
   const sexo = (params.get('sexo') as 'F' | 'M' | null) ?? undefined;
@@ -51,7 +55,7 @@ export default function Pacientes() {
     const p = new URLSearchParams(params);
     for (const [k, v] of Object.entries(cambios)) v ? p.set(k, v) : p.delete(k);
     if (!('pagina' in cambios)) p.delete('pagina');
-    setParams(p, { replace: true });
+    router.replace(`${pathname}?${p.toString()}`, { scroll: false });
   };
 
   const totalPaginas = datos ? Math.max(1, Math.ceil(datos.total / POR_PAGINA)) : 1;
@@ -75,7 +79,7 @@ export default function Pacientes() {
               <Download strokeWidth={1.75} aria-hidden="true" />
               Exportar
             </button>
-            <Link className="rc-btn rc-btn--primary" to="/registrar">
+            <Link className="rc-btn rc-btn--primary" href="/registrar">
               <UserPlus strokeWidth={1.75} aria-hidden="true" />
               Registrar paciente
             </Link>
@@ -171,7 +175,7 @@ export default function Pacientes() {
                     </label>
                   </td>
                   <td>
-                    <Link className="rowlink" to={`/pacientes/${p.id}`}>
+                    <Link className="rowlink" href={`/pacientes/${p.id}`}>
                       <div className="rc-person">
                         <span className={`rc-avatar ${varianteAvatar(p.id)}`}>{iniciales(p.nombres, p.apellidos)}</span>
                         <div className="rc-person__text">

@@ -1,6 +1,6 @@
 // Borrador generado desde prototipo.html (vista "registrar") por scripts/prototipo-a-jsx.py.
 import { CalendarDays, ChevronDown, ChevronRight, Mail, Phone, Plus, ShieldAlert, X } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import Link from 'next/link';
 
 export default function Registrar() {
   return (
@@ -8,7 +8,7 @@ export default function Registrar() {
       <header className="ph">
         <ol className="rc-breadcrumbs" aria-label="Ruta">
           <li>
-            <Link to="/pacientes">Pacientes</Link>
+            <Link href="/pacientes">Pacientes</Link>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </li>
           <li><span aria-current="page">Registrar paciente</span></li>
@@ -196,7 +196,7 @@ export default function Registrar() {
           </label>
         </div>
         <div className="rc-card__footer">
-          <Link className="rc-btn rc-btn--ghost" to="/pacientes">Cancelar</Link>
+          <Link className="rc-btn rc-btn--ghost" href="/pacientes">Cancelar</Link>
           <button className="rc-btn rc-btn--primary" data-toast="Paciente registrado|Expediente HG-2026-004812 creado.">Registrar paciente</button>
         </div>
       </section>
