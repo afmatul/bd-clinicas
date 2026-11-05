@@ -78,7 +78,7 @@ export const RegistroRapidoInput = z.object({
     .refine((n) => n.split(/\s+/).length >= 2, 'Escriba al menos un nombre y un apellido.'),
   telefono: z.string().transform((t) => t.replace(/\D/g, '')).pipe(z.string().regex(/^\d{8}$/, 'El teléfono debe tener 8 dígitos.')),
   fechaNacimiento: z.string().date('Use una fecha válida.'),
-  motivo: z.enum(MOTIVOS_RECEPCION, { errorMap: () => ({ message: 'Seleccione el motivo.' }) }),
+  motivo: z.enum(MOTIVOS_RECEPCION, { error: 'Seleccione el motivo.' }),
   asignarTurno: z.boolean().default(true),
 });
 export type RegistroRapidoInput = z.infer<typeof RegistroRapidoInput>;

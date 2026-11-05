@@ -18,13 +18,14 @@
     "db:up": "docker compose up -d",
     "db:down": "docker compose down",
     "db:seed": "npm run seed --workspace @red-clinica/api",
-    "db:reset": "docker compose down -v && docker compose up -d --wait && npm run db:seed"
+    "db:reset": "docker compose down -v && docker compose up -d --wait && npm run db:seed",
+    "audit:deps": "npm audit --audit-level=high && npm audit signatures"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0"
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0"
   }
 }

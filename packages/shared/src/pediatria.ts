@@ -8,8 +8,8 @@ const percentil = z.coerce.number().min(0).max(100);
 
 export const RegistrarMedicionInput = z.object({
   fecha,
-  pesoKg: z.coerce.number({ invalid_type_error: 'Escriba el peso.' }).min(0.3, 'Revise el peso.').max(200, 'Revise el peso.'),
-  tallaCm: z.coerce.number({ invalid_type_error: 'Escriba la talla.' }).min(20, 'Revise la talla.').max(220, 'Revise la talla.'),
+  pesoKg: z.coerce.number({ error: (i) => (i.code === 'invalid_type' ? 'Escriba el peso.' : undefined) }).min(0.3, 'Revise el peso.').max(200, 'Revise el peso.'),
+  tallaCm: z.coerce.number({ error: (i) => (i.code === 'invalid_type' ? 'Escriba la talla.' : undefined) }).min(20, 'Revise la talla.').max(220, 'Revise la talla.'),
   perimetroCefalicoCm: z.coerce.number().min(20, 'Revise el perímetro cefálico.').max(70, 'Revise el perímetro cefálico.').optional(),
   observaciones: z.string().trim().max(2000).optional(),
   /**
