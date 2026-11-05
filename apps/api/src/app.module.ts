@@ -2,6 +2,7 @@ import { Controller, Get, Module } from '@nestjs/common';
 import { InfraestructuraModule } from './infrastructure/infraestructura.module.js';
 import { IdentidadModule } from './modules/identidad/identidad.module.js';
 import { PacientesModule } from './modules/pacientes/pacientes.module.js';
+import { PediatriaModule } from './modules/pediatria/pediatria.module.js';
 
 @Controller()
 class SaludController {
@@ -16,7 +17,7 @@ class SaludController {
  * con sus adaptadores; al implementar agenda, atencion, etc., se agregan aquí.
  */
 @Module({
-  imports: [InfraestructuraModule, IdentidadModule, PacientesModule],
+  imports: [InfraestructuraModule, IdentidadModule, PacientesModule, PediatriaModule],
   controllers: [SaludController],
 })
 export class AppModule {}

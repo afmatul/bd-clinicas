@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { cargarEnv } from '../config/env.js';
 import { abrirConexiones } from '../infrastructure/conexiones.js';
 import { RegistroDeAdaptadores } from '../infrastructure/registro-adaptadores.js';
+import { sembrarPediatria } from '../modules/pediatria/adapters/mysql/datos-demo.js';
 import type { ContextoInstitucion } from '../shared/contexto.js';
 import { INSTITUCIONES, type InstitucionClave, type RegistrarPacienteInput } from '@red-clinica/shared';
 
@@ -112,6 +113,9 @@ for (const clave of Object.keys(INSTITUCIONES) as InstitucionClave[]) {
   }
   console.log(`${info.nombre} (${info.motorNombre}): ${nuevos} pacientes nuevos.`);
 }
+
+// 5. Módulo pediatria: catálogo de vacunas, curvas de crecimiento y carnés de ejemplo.
+await sembrarPediatria(c.mysql);
 
 await c.cerrar();
 console.log(`\nListo. Inicie sesión con cualquiera de: ${usuarios.map((u) => u[0]).join(', ')} · contraseña ${PASSWORD}`);
