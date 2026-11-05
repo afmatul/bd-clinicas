@@ -8,7 +8,7 @@ const hoyLocal = () => {
 };
 
 /** Turnos del prototipo (vista "recepcion") para el modo demo. */
-const ODONTOLOGO_DEMO = { id: 'demo', nombre: 'Dr. Fernando Castillo' };
+const ODONTOLOGO_DEMO = { id: 'demo', nombre: 'Fernando Castillo' };
 const turnoDemo = (hora: string, nombres: string, apellidos: string, motivo: string, estado: Turno['estado']): Turno => ({
   id: `demo:${hora}`, hora, idPaciente: `demo-${hora}`, paciente: { nombres, apellidos }, motivo, estado, llegada: null,
   idOdontologo: ODONTOLOGO_DEMO.id, odontologo: ODONTOLOGO_DEMO.nombre,

@@ -1,12 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import type { DocumentScope } from 'nano';
 import type { PacienteCouch } from '../../../pacientes/adapters/couch/paciente-repository.js';
-import { Conflicto } from '../../../../shared/errores.js';
-import { liberaHorario } from '../../domain/recepcion.js';
 import type { Odontologo, PacienteRapido, RecepcionRepository, TurnoDatos } from '../../ports/recepcion-repository.js';
 import { estado, leer } from './couch.js';
 
-/** Documento cita (misma forma que el adaptador Couch del módulo agenda). */
+/** Documento cita: lo escribe el módulo agenda; aquí solo se lee y se le agrega llegada_en. */
 interface CitaCouch {
   _id: string; // cita:<medico_id>:<yyyy-mm-dd>T<HH:mm> — determinista: dos citas en el mismo horario chocan con 409
   _rev?: string;
@@ -29,6 +27,7 @@ interface PersonalCouch {
   apellidos: string;
   rol?: string;
   estado?: string;
+  activo?: boolean;
 }
 
 const CITA = 'cita:';
@@ -54,8 +53,9 @@ export class CouchRecepcionRepository implements RecepcionRepository {
   async odontologos(): Promise<Odontologo[]> {
     const r = await this.db.find({ selector: { type: 'personal', rol: 'ODONTOLOGO' }, limit: 200 });
     return (r.docs as unknown as PersonalCouch[])
-      .filter((p) => p.estado !== 'BAJA' && p.estado !== 'INACTIVO')
-      .map((p) => ({ id: p._id.slice('personal:'.length), nombre: `Dr. ${p.nombres} ${p.apellidos}`.trim() }))
+      .filter((p) => p.activo !== false && p.estado !== 'BAJA' && p.estado !== 'INACTIVO')
+      // Sin título (Dr./Dra.): el documento personal no dice cuál corresponde.
+      .map((p) => ({ id: p._id.slice('personal:'.length), nombre: `${p.nombres} ${p.apellidos}`.trim() }))
       .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
   }
 
@@ -110,38 +110,6 @@ export class CouchRecepcionRepository implements RecepcionRepository {
     };
     await this.db.insert(doc as never);
     return id;
-  }
-
-  /**
-   * El _id determinista hace que Couch rechace (409) un segundo documento en el mismo horario.
-   * Si el horario lo tenía una cita cancelada o con inasistencia, esa cita se copia a cita:<uuid>
-   * (con reemplazada_por) y el _id se reutiliza para la nueva, porque en Couch no se borra.
-   */
-  async agendar(t: Omit<TurnoDatos, 'id' | 'estado' | 'llegada'>) {
-    const _id = idCita(t.idOdontologo, t.fecha, t.hora);
-    const nueva: CitaCouch = {
-      _id, type: 'cita', paciente_id: t.idPaciente, medico_id: t.idOdontologo, fecha: t.fecha, hora: t.hora,
-      motivo: t.motivo, estado: 'PROGRAMADA', creada_en: new Date().toISOString(), llegada_en: null,
-    };
-    try {
-      await this.db.insert(nueva as never);
-      return _id.slice(CITA.length);
-    } catch (err) {
-      if (estado(err) !== 409) throw err;
-    }
-    const ocupante = await leer<CitaCouch>(this.db, _id);
-    if (!ocupante || !liberaHorario(ocupante.estado)) {
-      throw new Conflicto(`El horario de las ${t.hora} ya está ocupado. Elija otro.`);
-    }
-    const { _rev, ...vieja } = ocupante;
-    await this.db.insert({ ...vieja, _id: `${CITA}${randomUUID()}`, reemplazada_por: _id.slice(CITA.length) } as never);
-    try {
-      await this.db.insert({ ...nueva, _rev } as never);
-    } catch (err) {
-      if (estado(err) === 409) throw new Conflicto(`El horario de las ${t.hora} se acaba de ocupar. Elija otro.`);
-      throw err;
-    }
-    return _id.slice(CITA.length);
   }
 
   async obtenerTurno(id: string) {
