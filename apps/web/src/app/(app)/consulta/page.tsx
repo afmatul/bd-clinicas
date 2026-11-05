@@ -1,6 +1,7 @@
+import { Suspense } from 'react';
 import Consulta from '../../../vistas/Consulta';
 
-// Borrador: aún muestra los datos del prototipo.
+// Conectada a la API. Suspense: la vista lee la URL (useSearchParams).
 export default function Page() {
-  return <Consulta />;
+  return <Suspense><Consulta /></Suspense>;
 }

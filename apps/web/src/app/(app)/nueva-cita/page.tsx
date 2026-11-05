@@ -1,6 +1,7 @@
+import { Suspense } from 'react';
 import NuevaCita from '../../../vistas/NuevaCita';
 
-// Borrador: aún muestra los datos del prototipo.
+// Conectada a la API. Suspense: la vista lee la URL (useSearchParams).
 export default function Page() {
-  return <NuevaCita />;
+  return <Suspense><NuevaCita /></Suspense>;
 }

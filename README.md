@@ -49,7 +49,9 @@ scripts/                  Sincronización del design system, verificación de to
 | personal | Listo en los 4 motores: directorio público, médicos con especialidades, departamentos (hospital) y altas por ADMIN. |
 | odontologia | Listo (CouchDB): recepción del día, registro rápido con turno, llegada y odontograma con historial. Pantalla Recepción conectada. |
 | pediatria | Listo (MySQL): mediciones con percentiles OMS, carné de vacunación y dosis vencidas. Pantallas de crecimiento y vacunas conectadas. |
-| agenda, atencion, prescripcion | Puertos definidos (`ports/`), sin implementar. |
+| agenda | Listo en los 4 motores: agenda por día/semana/mes, horarios libres, agendar sin choque (lo garantiza cada motor), confirmar, cancelar, inasistencias. |
+| atencion | Listo en los 4 motores: abrir/retomar consulta, borrador, cierre atómico (signos, diagnóstico, tratamiento y receta), historial. |
+| prescripcion | Listo en los 4 motores: catálogo de medicamentos, recetas vigentes e históricas, alerta de alergias al recetar. |
 | laboratorio | Listo en MongoDB: catálogo de tipos, registrar examen, capturar resultados por tipo, validar, listar y ver con interpretación. Pantalla Resultados conectada. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.
@@ -77,6 +79,7 @@ Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:w
 npm run typecheck             # api, web y shared
 npm run check:tokens          # la web no usa colores ni fuentes fuera del design system
 scripts/prueba-paridad.sh     # mismas operaciones, mismo resultado en los 4 motores (API corriendo)
+scripts/prueba-atencion.sh    # agenda → consulta → receta en los 4 motores (médicos con id_personal y medicamentos sembrados)
 ```
 
 ## Design system

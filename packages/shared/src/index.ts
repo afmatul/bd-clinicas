@@ -7,3 +7,5 @@ export * from './antecedentes.js';
 export * from './personal.js';
 export * from './auditoria.js';
 export * from './laboratorio.js';
+export * from './agenda.js';
+export * from './atencion.js';

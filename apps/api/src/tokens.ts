@@ -17,3 +17,6 @@ export const PEDIATRIA = Symbol('CasosDeUsoPediatria');
 export const ANTECEDENTES = Symbol('CasosDeUsoAntecedentes');
 export const PERSONAL = Symbol('CasosDeUsoPersonal');
 export const CONSULTAS_AUDITORIA = Symbol('ConsultasAuditoria');
+export const AGENDA = Symbol('CasosDeUsoAgenda');
+export const ATENCION = Symbol('CasosDeUsoAtencion');
+export const PRESCRIPCION = Symbol('CasosDeUsoPrescripcion');

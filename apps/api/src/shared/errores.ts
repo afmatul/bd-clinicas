@@ -1,5 +1,7 @@
 /** Errores de dominio. El manejador HTTP los traduce a códigos de estado; los casos de uso no saben de HTTP. */
 export class ErrorDeDominio extends Error {
+  /** Datos extra para la pantalla (p. ej. las alergias que chocan con una receta). */
+  detalle?: unknown;
   constructor(message: string, readonly codigo: string) {
     super(message);
     this.name = new.target.name;

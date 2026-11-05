@@ -156,7 +156,7 @@ lab.examenes.createIndex({ tipo: 1, fecha_actualizacion: -1 });
 // Evita el doble agendamiento solo para citas activas.
 lab.citas.createIndex(
   { medico_id: 1, fecha: 1, hora: 1 },
-  { unique: true, partialFilterExpression: { estado: { $in: ['PROGRAMADA', 'CONFIRMADA'] } } },
+  { unique: true, partialFilterExpression: { estado: { $in: ['PROGRAMADA', 'CONFIRMADA', 'EN_CONSULTA'] } } },
 );
 
 lab.createUser({

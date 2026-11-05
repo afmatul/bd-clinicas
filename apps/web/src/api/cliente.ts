@@ -1,6 +1,6 @@
 /** Error con el mensaje para el usuario que devuelve la API. */
 export class ApiError extends Error {
-  constructor(readonly status: number, message: string, readonly campos: Record<string, string> = {}) {
+  constructor(readonly status: number, message: string, readonly campos: Record<string, string> = {}, readonly detalle?: unknown) {
     super(message);
   }
 }
@@ -19,7 +19,7 @@ export async function api<T>(ruta: string, opciones: { method?: string; body?: u
   if (res.status === 204) return undefined as T;
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    throw new ApiError(res.status, data.mensaje ?? 'No pudimos conectar con el servidor. Intente de nuevo.', data.campos);
+    throw new ApiError(res.status, data.mensaje ?? 'No pudimos conectar con el servidor. Intente de nuevo.', data.campos, data.detalle);
   }
   return data as T;
 }
