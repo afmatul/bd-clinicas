@@ -1,15 +1,48 @@
+'use client';
 // Borrador generado desde prototipo.html (vista "inicio") por scripts/prototipo-a-jsx.py.
+// Conectados: saludo (sesión + módulo personal) y "Pacientes activos" (módulo pacientes).
+// La agenda, sala de espera y pendientes siguen con datos del prototipo.
+import { useEffect, useState } from 'react';
+import { useSesion } from '../lib/sesion';
+import { miPerfilProfesional } from '../api/personal';
+import { buscarPacientes } from '../api/pacientes';
+import { formatoNumero } from '../datos/formato';
 import { Bed, CalendarDays, Check, CircleCheck, Clock, FlaskConical, MoreVertical, Plus, Search, TrendingUp, Users } from 'lucide-react';
 import Link from 'next/link';
 
+const fechaLarga = new Intl.DateTimeFormat('es-GT', { timeZone: 'America/Guatemala', weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+/** "Dra. Ana Lucía Pérez" → "Dra. Pérez"; sin título, el primer nombre. */
+function tratamiento(nombre: string) {
+  const m = /^(Dra?\.|Lic\.)\s*(.+)$/.exec(nombre);
+  if (!m) return nombre.split(' ')[0];
+  return `${m[1]} ${m[2]!.split(/\s+/).at(-1)}`;
+}
+
+function saludo(hora = Number(new Intl.DateTimeFormat('en-US', { timeZone: 'America/Guatemala', hour: 'numeric', hour12: false }).format(new Date()))) {
+  return hora < 12 ? 'Buenos días' : hora < 19 ? 'Buenas tardes' : 'Buenas noches';
+}
+
 export default function Inicio() {
+  const { perfil } = useSesion();
+  const [especialidad, setEspecialidad] = useState<string | null>(null);
+  const [activos, setActivos] = useState<number | null>(null);
+
+  useEffect(() => {
+    miPerfilProfesional().then((p) => setEspecialidad(p?.especialidades[0]?.nombre ?? null)).catch(() => undefined);
+    buscarPacientes({ estado: 'ACTIVO', porPagina: 1 }).then((r) => setActivos(r.total)).catch(() => undefined);
+  }, []);
+
+  const hoy = fechaLarga.format(new Date());
+  const subtitulo = [hoy.charAt(0).toUpperCase() + hoy.slice(1).replace(',', ''), especialidad, perfil?.institucion.nombre].filter(Boolean).join(' · ');
+
   return (
     <div className="view">
       <header className="ph">
         <div className="ph__row">
           <div className="ph__text">
-            <h1 className="h1">Buenos días, Dra. Pérez</h1>
-            <p>Jueves 5 de noviembre de 2026 · Medicina interna · Hospital general</p>
+            <h1 className="h1">{saludo()}, {perfil ? tratamiento(perfil.usuario.nombre) : ''}</h1>
+            <p>{subtitulo}</p>
           </div>
           <div className="ph__actions">
             <Link className="rc-btn rc-btn--secondary" href="/pacientes">
@@ -45,12 +78,9 @@ export default function Inicio() {
             </span>
             Pacientes activos
           </span>
-          <span className="rc-stat__value">1,248</span>
-          <span className="rc-delta rc-delta--up">
-            <TrendingUp strokeWidth={1.75} aria-hidden="true" />
-            +36
-            <span className="rc-delta__ctx">este mes</span>
-          </span>
+          {activos === null
+            ? <span className="rc-skeleton" style={{ display: 'block', height: '32px', width: '80px' }} />
+            : <span className="rc-stat__value">{formatoNumero(activos)}</span>}
         </div>
         <div className="rc-stat">
           <span className="rc-stat__label">

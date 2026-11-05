@@ -43,10 +43,11 @@ scripts/                  Sincronización del design system, verificación de to
 | Módulo | Estado |
 | --- | --- |
 | identidad | Listo: login contra plataforma, bloqueo tras 5 intentos por 15 min, JWT de 8 h, cierre de sesión. |
-| auditoria | Listo para registrar (bitácora solo inserción). Falta la consulta "quién vio a este paciente". |
+| auditoria | Listo: registro (solo inserción) y consultas para AUDITOR: bitácora con filtros, exportación CSV y "quién vio a este paciente". |
 | pacientes | Listo en los 4 motores: búsqueda (CUI, nombre sin acentos, sexo, sangre), ficha, alta, baja lógica. |
-| antecedentes | Lectura de alergias y antecedentes en los 4 motores. Falta registrar. |
-| agenda, atencion, prescripcion, personal | Puertos definidos (`ports/`), sin implementar. |
+| antecedentes | Listo en los 4 motores: lectura y registro de alergias y antecedentes (sin duplicados, no en pacientes de baja). |
+| personal | Listo en los 4 motores: directorio público, médicos con especialidades, departamentos (hospital) y altas por ADMIN. |
+| agenda, atencion, prescripcion | Puertos definidos (`ports/`), sin implementar. |
 | pediatria, odontologia, laboratorio | Puertos definidos, sin implementar. |
 
 Cada módulo pendiente tiene un `README.md` con los pasos, siguiendo el patrón de `modules/pacientes`.

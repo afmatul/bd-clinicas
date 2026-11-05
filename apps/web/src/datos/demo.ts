@@ -1,4 +1,6 @@
-import { INSTITUCIONES, type InstitucionClave, type PacienteResumen, type Perfil } from '@red-clinica/shared';
+import {
+  INSTITUCIONES, type EntradaBitacora, type InstitucionClave, type PacienteFicha, type PacienteResumen, type Perfil, type Profesional,
+} from '@red-clinica/shared';
 
 /** Los pacientes del prototipo (vista "pacientes"). */
 export const PACIENTES_DEMO: PacienteResumen[] = [
@@ -21,3 +23,50 @@ export function perfilDemo(clave: InstitucionClave = 'hospital'): Perfil {
     institucion: { id: clave, clave, nombre: i.nombre, motor: i.motor, modulos: i.modulos },
   };
 }
+
+/** Ficha del prototipo (vista "paciente"): alergias y antecedentes de María José López. */
+export function FICHA_DEMO(id: string): PacienteFicha {
+  const p = PACIENTES_DEMO.find((x) => x.id === id) ?? PACIENTES_DEMO[0]!;
+  const esMaria = p.id === '1';
+  return {
+    ...p,
+    direccion: esMaria ? '5a. avenida 12-40, zona 1, Mixco' : null,
+    procedencia: esMaria ? 'Mixco' : null,
+    telefonos: p.telefono ? [p.telefono] : [],
+    emails: esMaria ? ['mjlopez@correo.gt'] : [],
+    alergias: esMaria
+      ? [
+          { id: 'a1', tipo: 'Penicilina', descripcion: 'Reacción anafiláctica registrada en 2019. No recetar betalactámicos.', severidad: 'SEVERA', idMedicamento: null },
+          { id: 'a2', tipo: 'Polen', descripcion: null, severidad: 'LEVE', idMedicamento: null },
+        ]
+      : [],
+    antecedentes: esMaria
+      ? [
+          { id: 'h1', tipo: 'Hipertensión arterial', descripcion: null },
+          { id: 'h2', tipo: 'Apendicectomía 2015', descripcion: null },
+          { id: 'h3', tipo: 'Madre diabética', descripcion: null },
+        ]
+      : [],
+    baja: p.estado === 'BAJA' ? { fecha: '2026-06-02', motivo: 'Traslado a otra institución' } : null,
+  };
+}
+
+/** Personal del hospital para el directorio en modo demo. */
+export const PERSONAL_DEMO: Profesional[] = [
+  { id: '1', nombres: 'Ana Lucía', apellidos: 'Pérez', numeroColegiado: 'COL-10234', especialidades: [{ id: '1', nombre: 'Medicina interna' }] },
+  { id: '2', nombres: 'Carlos', apellidos: 'Méndez', numeroColegiado: 'COL-11870', especialidades: [{ id: '2', nombre: 'Neurología' }] },
+  { id: '3', nombres: 'Lucía', apellidos: 'Coyoy Batz', numeroColegiado: 'COL-12455', especialidades: [{ id: '3', nombre: 'Cardiología' }, { id: '1', nombre: 'Medicina interna' }] },
+];
+
+const USUARIO_DEMO = { id: 'demo', username: 'aperez', nombre: 'Dra. Ana Lucía Pérez', rol: 'MEDICO' as const };
+const RECEPCION_DEMO = { id: 'r', username: 'recepcion.hg', nombre: 'Recepción Hospital general', rol: 'RECEPCION' as const };
+
+/** Bitácora de ejemplo: quién vio y modificó el expediente de María José López. */
+export const BITACORA_DEMO: EntradaBitacora[] = [
+  { id: '6', momento: '2026-11-05T14:12:00Z', usuario: USUARIO_DEMO, accion: 'LEER', entidad: 'paciente', idRegistro: '1', idPaciente: '1', ip: '10.0.4.21' },
+  { id: '5', momento: '2026-11-04T14:20:00Z', usuario: USUARIO_DEMO, accion: 'CREAR', entidad: 'alergia', idRegistro: 'a2', idPaciente: '1', ip: '10.0.4.21' },
+  { id: '4', momento: '2026-11-04T14:08:00Z', usuario: USUARIO_DEMO, accion: 'LEER', entidad: 'paciente', idRegistro: '1', idPaciente: '1', ip: '10.0.4.21' },
+  { id: '3', momento: '2026-11-04T13:55:00Z', usuario: RECEPCION_DEMO, accion: 'LEER', entidad: 'paciente', idRegistro: '1', idPaciente: '1', ip: '10.0.4.10' },
+  { id: '2', momento: '2026-11-04T13:50:00Z', usuario: RECEPCION_DEMO, accion: 'CREAR', entidad: 'paciente', idRegistro: '2', idPaciente: '2', ip: '10.0.4.10' },
+  { id: '1', momento: '2026-11-04T13:30:00Z', usuario: USUARIO_DEMO, accion: 'LOGIN', entidad: null, idRegistro: null, idPaciente: null, ip: '10.0.4.21' },
+];
