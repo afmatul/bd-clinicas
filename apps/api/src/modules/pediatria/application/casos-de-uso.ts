@@ -26,7 +26,7 @@ export function crearCasosDeUsoPediatria(deps: {
     const m = await deps.repo(ctx).menor(id);
     if (!m) throw new NoEncontrado('El paciente');
     if (m.estado === 'BAJA') {
-      throw new ReglaDeNegocio(`El expediente está de baja desde el ${m.baja?.fecha ?? ''}: no admite registros nuevos.`);
+      throw new ReglaDeNegocio(`El expediente está de baja desde el ${(m.baja?.fecha ?? '').split('-').reverse().join('/')}: no admite registros nuevos.`);
     }
     return m;
   }
