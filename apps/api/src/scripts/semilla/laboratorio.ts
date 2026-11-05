@@ -2,7 +2,12 @@
  * Laboratorio clínico · MongoDB. Ids deterministas (ObjectId derivado de una clave), así una segunda
  * corrida encuentra lo mismo y no duplica.
  */
-import { Double, ObjectId, type Db } from 'mongodb';
+import { ObjectId, type Db } from 'mongodb';
+import type { CapturarResultadosInput, TipoExamenClave } from '@red-clinica/shared';
+import { CATALOGO } from '../../modules/laboratorio/domain/catalogo.js';
+import { construirResultados } from '../../modules/laboratorio/domain/examen.js';
+import { MongoExamenRepository, prepararLaboratorio } from '../../modules/laboratorio/adapters/mongo/examen-repository.js';
+import type { Firma } from '../../modules/laboratorio/ports/examen-repository.js';
 import { CASOS, MEDICAMENTOS_ADULTO } from './catalogos.js';
 import { ADULTOS, NINOS, PERSONAL_LABORATORIO, type Adulto, type Nino } from './personas.js';
 import { Agenda, pesoEnConsulta, recetaPara, signosAdulto } from './plan.js';
@@ -10,7 +15,6 @@ import { azar, dia, diaHabil, fechaDate, hexDe, HOY, sumarDias } from './util.js
 
 type Rng = ReturnType<typeof azar>;
 const oid = (clave: string) => new ObjectId(hexDe(`laboratorio:${clave}`));
-const d = (n: number) => new Double(n);
 
 export interface ResultadoLaboratorio {
   personal: Record<string, string>;
@@ -19,91 +23,39 @@ export interface ResultadoLaboratorio {
   omitido: boolean;
 }
 
-/** Catálogo de tipos de examen: la web arma el formulario de captura a partir de `campos`. */
-export const TIPOS_EXAMEN = [
-  {
-    clave: 'hematologia', nombre: 'Hematología completa', muestra: 'Sangre total (EDTA)', tiempo_entrega_horas: 4,
-    campos: [
-      { clave: 'hemoglobina', nombre: 'Hemoglobina', unidad: 'g/dL', rango_min: 12.0, rango_max: 16.0 },
-      { clave: 'hematocrito', nombre: 'Hematocrito', unidad: '%', rango_min: 36, rango_max: 46 },
-      { clave: 'leucocitos', nombre: 'Leucocitos', unidad: '×10³/µL', rango_min: 4.5, rango_max: 11.0 },
-      { clave: 'neutrofilos', nombre: 'Neutrófilos', unidad: '%', rango_min: 40, rango_max: 70 },
-      { clave: 'linfocitos', nombre: 'Linfocitos', unidad: '%', rango_min: 20, rango_max: 40 },
-      { clave: 'plaquetas', nombre: 'Plaquetas', unidad: '×10³/µL', rango_min: 150, rango_max: 400 },
-      { clave: 'vcm', nombre: 'Volumen corpuscular medio', unidad: 'fL', rango_min: 80, rango_max: 100 },
-    ],
-  },
-  {
-    clave: 'orina', nombre: 'Orina simple', muestra: 'Orina, primera de la mañana', tiempo_entrega_horas: 2,
-    campos: [
-      { clave: 'color', nombre: 'Color' }, { clave: 'aspecto', nombre: 'Aspecto' },
-      { clave: 'densidad', nombre: 'Densidad', rango_min: 1.005, rango_max: 1.03 },
-      { clave: 'ph', nombre: 'pH', rango_min: 5, rango_max: 8 },
-      { clave: 'proteinas', nombre: 'Proteínas' }, { clave: 'glucosa', nombre: 'Glucosa' }, { clave: 'nitritos', nombre: 'Nitritos' },
-      { clave: 'leucocitos', nombre: 'Leucocitos', unidad: '/campo', rango_min: 0, rango_max: 5 },
-      { clave: 'eritrocitos', nombre: 'Eritrocitos', unidad: '/campo', rango_min: 0, rango_max: 3 },
-      { clave: 'bacterias', nombre: 'Bacterias' },
-    ],
-  },
-  {
-    clave: 'urocultivo', nombre: 'Urocultivo con antibiograma', muestra: 'Orina, chorro medio', tiempo_entrega_horas: 72,
-    campos: [
-      { clave: 'organismo', nombre: 'Microorganismo aislado' },
-      { clave: 'recuento_ufc', nombre: 'Recuento', unidad: 'UFC/mL', rango_max: 100000 },
-      { clave: 'antibiograma', nombre: 'Antibiograma (S, I, R)' },
-    ],
-  },
-  {
-    clave: 'quimica', nombre: 'Química sanguínea', muestra: 'Suero', tiempo_entrega_horas: 6,
-    campos: [
-      { clave: 'glucosa', nombre: 'Glucosa en ayunas', unidad: 'mg/dL', rango_min: 70, rango_max: 100 },
-      { clave: 'hba1c', nombre: 'Hemoglobina glicosilada', unidad: '%', rango_min: 4.0, rango_max: 5.6 },
-      { clave: 'creatinina', nombre: 'Creatinina', unidad: 'mg/dL', rango_min: 0.6, rango_max: 1.2 },
-      { clave: 'bun', nombre: 'Nitrógeno de urea', unidad: 'mg/dL', rango_min: 7, rango_max: 20 },
-      { clave: 'acido_urico', nombre: 'Ácido úrico', unidad: 'mg/dL', rango_min: 2.4, rango_max: 7.0 },
-      { clave: 'colesterol', nombre: 'Colesterol total', unidad: 'mg/dL', rango_min: 0, rango_max: 200 },
-      { clave: 'trigliceridos', nombre: 'Triglicéridos', unidad: 'mg/dL', rango_min: 0, rango_max: 150 },
-      { clave: 'sodio', nombre: 'Sodio', unidad: 'mmol/L', rango_min: 136, rango_max: 145 },
-      { clave: 'potasio', nombre: 'Potasio', unidad: 'mmol/L', rango_min: 3.5, rango_max: 5.1 },
-    ],
-  },
-] as const;
+/**
+ * Los exámenes se crean con el repositorio del módulo laboratorio (ordenar → capturar → validar), así
+ * tienen exactamente la forma que valida el $jsonSchema de `examenes` y que lee la pantalla Resultados.
+ * El catálogo `tipos_examen` es el del módulo (modules/laboratorio/domain/catalogo.ts).
+ */
+const ENTREGA_HORAS: Record<TipoExamenClave, number> = { hematologia: 4, orina: 2, urocultivo: 72, quimica: 6 };
 
-type Tipo = (typeof TIPOS_EXAMEN)[number]['clave'];
+type Tipo = TipoExamenClave;
 type Perfil = 'normal' | 'dm2' | 'dislipidemia' | 'erc' | 'infeccion' | 'itu' | 'anemia' | 'nino';
 
-/** Valores con unidad y rango (orina, química); fuera_de_rango se calcula. */
-function valores(tipo: 'orina' | 'quimica', crudos: Record<string, number | string>) {
-  const def = TIPOS_EXAMEN.find((t) => t.clave === tipo)!;
-  return def.campos.filter((c) => crudos[c.clave] !== undefined).map((c) => {
-    const valor = crudos[c.clave]!;
-    const min = 'rango_min' in c ? c.rango_min : undefined;
-    const max = 'rango_max' in c ? c.rango_max : undefined;
-    const fuera = typeof valor === 'number' && ((min !== undefined && valor < min) || (max !== undefined && valor > max));
-    return {
-      clave: c.clave, nombre: c.nombre, valor: typeof valor === 'number' ? d(valor) : valor,
-      unidad: 'unidad' in c ? c.unidad : null, rango_min: min ?? null, rango_max: max ?? null, fuera_de_rango: fuera,
-    };
-  });
-}
+const texto = (xs: Record<string, number | string>) => Object.fromEntries(Object.entries(xs).map(([k, v]) => [k, String(v)]));
 
-export function resultados(tipo: Tipo, perfil: Perfil, rng: Rng, sexo: 'F' | 'M') {
+/** Lo que el químico biólogo escribiría en el formulario de captura, coherente con el perfil del paciente. */
+export function captura(tipo: Tipo, perfil: Perfil, rng: Rng, sexo: 'F' | 'M'): CapturarResultadosInput {
   if (tipo === 'hematologia') {
     const hb = perfil === 'anemia' ? rng.real(9.2, 10.8) : perfil === 'erc' ? rng.real(10.5, 11.6) : sexo === 'F' ? rng.real(12.4, 14.6) : rng.real(13.6, 16.4);
     const leu = perfil === 'infeccion' ? rng.real(12.5, 16.8) : rng.real(5.2, 9.4);
     return {
-      hemoglobina: d(hb), hematocrito: d(Number((hb * 3).toFixed(1))), leucocitos: d(leu),
-      neutrofilos: d(perfil === 'infeccion' ? rng.real(76, 86) : rng.real(48, 66)), linfocitos: d(perfil === 'infeccion' ? rng.real(10, 18) : rng.real(24, 38)),
-      plaquetas: d(rng.entre(180, 360)), vcm: d(perfil === 'anemia' ? rng.real(70, 78) : rng.real(84, 96)),
+      valores: texto({
+        hemoglobina: hb, hematocrito: Number((hb * 3).toFixed(1)), leucocitos: leu,
+        neutrofilos: perfil === 'infeccion' ? rng.real(76, 86) : rng.real(48, 66), linfocitos: perfil === 'infeccion' ? rng.real(10, 18) : rng.real(24, 38),
+        plaquetas: rng.entre(180, 360),
+      }),
+      antibiograma: [],
     };
   }
   if (tipo === 'urocultivo') {
-    if (perfil !== 'itu') return { organismo: 'Sin crecimiento bacteriano', recuento_ufc: 0, antibiograma: [] };
+    if (perfil !== 'itu') return { valores: { organismo: 'Sin crecimiento' }, antibiograma: [] };
     return {
-      organismo: 'Escherichia coli', recuento_ufc: rng.uno([100000, 150000, 200000]),
+      valores: texto({ organismo: 'Escherichia coli', recuento_ufc: rng.uno([100000, 150000, 200000]) }),
       antibiograma: [
         { antibiotico: 'Nitrofurantoína', interpretacion: 'S' }, { antibiotico: 'Fosfomicina', interpretacion: 'S' },
-        { antibiotico: 'Ciprofloxacino', interpretacion: rng.uno(['S', 'R']) }, { antibiotico: 'Trimetoprim/sulfametoxazol', interpretacion: 'R' },
+        { antibiotico: 'Ciprofloxacino', interpretacion: rng.uno(['S', 'R'] as const) }, { antibiotico: 'Trimetoprim/sulfametoxazol', interpretacion: 'R' },
         { antibiotico: 'Ampicilina', interpretacion: 'R' }, { antibiotico: 'Ceftriaxona', interpretacion: 'S' },
       ],
     };
@@ -111,21 +63,23 @@ export function resultados(tipo: Tipo, perfil: Perfil, rng: Rng, sexo: 'F' | 'M'
   if (tipo === 'orina') {
     const itu = perfil === 'itu';
     return {
-      valores: valores('orina', {
-        color: 'Amarillo', aspecto: itu ? 'Turbio' : 'Claro', densidad: rng.real(1.012, 1.025, 3), ph: rng.real(5.5, 6.5),
+      valores: texto({
+        color: 'Amarillo', aspecto: itu ? 'Turbio' : 'Transparente', densidad: rng.real(1.012, 1.025, 3), ph: rng.real(5.5, 6.5),
         proteinas: perfil === 'erc' ? 'Trazas' : 'Negativo', glucosa: perfil === 'dm2' ? '+' : 'Negativo', nitritos: itu ? 'Positivo' : 'Negativo',
-        leucocitos: itu ? rng.entre(20, 40) : rng.entre(0, 3), eritrocitos: itu ? rng.entre(3, 8) : rng.entre(0, 2), bacterias: itu ? 'Abundantes' : 'Escasas',
+        sangre: 'Negativo', leucocitos: itu ? rng.entre(20, 40) : rng.entre(0, 3), eritrocitos: itu ? rng.entre(3, 8) : rng.entre(0, 2),
+        bacterias: itu ? 'Abundantes' : 'Escasas', cilindros: 'No se observan',
       }),
+      antibiograma: [],
     };
   }
   const base: Record<string, number> = {
-    glucosa: rng.entre(78, 98), creatinina: sexo === 'F' ? rng.real(0.6, 0.95, 2) : rng.real(0.8, 1.15, 2), bun: rng.entre(9, 18),
-    acido_urico: rng.real(3.2, 6.2), colesterol: rng.entre(150, 195), trigliceridos: rng.entre(90, 145), sodio: rng.entre(137, 143), potasio: rng.real(3.8, 4.8),
+    glucosa: rng.entre(78, 98), creatinina: sexo === 'F' ? rng.real(0.6, 0.95, 2) : rng.real(0.8, 1.15, 2), nitrogeno_ureico: rng.entre(9, 18),
+    colesterol: rng.entre(150, 195), trigliceridos: rng.entre(90, 145), sodio: rng.entre(137, 143), potasio: rng.real(3.8, 4.8),
   };
-  if (perfil === 'dm2') Object.assign(base, { glucosa: rng.entre(128, 168), hba1c: rng.real(6.8, 8.2) });
+  if (perfil === 'dm2') Object.assign(base, { glucosa: rng.entre(128, 168) });
   if (perfil === 'dislipidemia') Object.assign(base, { colesterol: rng.entre(232, 262), trigliceridos: rng.entre(180, 240) });
-  if (perfil === 'erc') Object.assign(base, { creatinina: rng.real(1.8, 2.2, 2), bun: rng.entre(32, 41), potasio: 6.4 });
-  return { valores: valores('quimica', base) };
+  if (perfil === 'erc') Object.assign(base, { creatinina: rng.real(1.8, 2.2, 2), nitrogeno_ureico: rng.entre(32, 41), potasio: 6.4 });
+  return { valores: texto(base), antibiograma: [] };
 }
 
 const SOLICITANTES = ['Dra. Ana Lucía Pérez (Hospital general)', 'Dr. Carlos Méndez', 'Dr. Jorge Castillo (Centro pediátrico)', 'Dra. Silvia Natareno', 'Particular, sin orden médica'];
@@ -148,9 +102,8 @@ export async function sembrarLaboratorio(db: Db): Promise<ResultadoLaboratorio> 
     await db.collection('medicamentos').updateOne({ _id }, { $set: { nombre: m.nombre, presentacion: m.presentacion, concentracion: m.concentracion } }, { upsert: true });
     meds[m.clave] = _id;
   }
-  for (const t of TIPOS_EXAMEN) {
-    await db.collection('tipos_examen').updateOne({ clave: t.clave }, { $set: { ...t, campos: t.campos.map((c) => ({ ...c })) } }, { upsert: true });
-  }
+  // Catálogo de tipos de examen (upsert por clave) e índices de `examenes`.
+  await prepararLaboratorio(db, CATALOGO);
 
   // Pacientes: adultos del laboratorio y Mateo (también paciente del pediátrico).
   const adultos = ADULTOS.filter((a) => a.en.includes('laboratorio'));
@@ -166,7 +119,8 @@ export async function sembrarLaboratorio(db: Db): Promise<ResultadoLaboratorio> 
 
   if ((await db.collection('examenes').countDocuments({}, { limit: 1 })) > 0) return { ...res, omitido: true };
 
-  const examenes: Record<string, unknown>[] = [];
+  interface Orden { p: Adulto | Nino; tipo: Tipo; fecha: string; orden: Date; estado: 'PENDIENTE' | 'EN_PROCESO' | 'VALIDADO'; perfil: Perfil; quimico: string; solicitante: string; observaciones: string | null }
+  const ordenes: Orden[] = [];
   const citas: Record<string, unknown>[] = [];
   const agenda = new Agenda(rng);
   const quimicos = ['msic', 'itoc'];
@@ -178,24 +132,12 @@ export async function sembrarLaboratorio(db: Db): Promise<ResultadoLaboratorio> 
     if (p.agudos.includes('itu')) return 'itu';
     return 'normal';
   };
-  const examen = (clave: string, p: Adulto | Nino, tipo: Tipo, fecha: string, hora: string, estado: 'PENDIENTE' | 'EN_PROCESO' | 'VALIDADO', perfil: Perfil) => {
-    const _id = oid(`examen:${clave}`);
-    const quimico = res.personal[rng.uno(quimicos)]!;
-    const horas = TIPOS_EXAMEN.find((t) => t.clave === tipo)!.tiempo_entrega_horas;
-    const orden = new Date(`${fecha}T${hora}:00-06:00`);
-    const listo = new Date(orden.getTime() + horas * 3600_000);
-    examenes.push({
-      _id, paciente_id: new ObjectId(res.pacientes[p.clave]!), tipo, estado,
-      fecha_orden: orden,
-      fecha_toma: estado === 'PENDIENTE' ? null : new Date(orden.getTime() + 15 * 60_000),
-      fecha_resultado: estado === 'VALIDADO' ? listo : null,
-      solicitado_por: 'cronicos' in p ? rng.uno(SOLICITANTES) : 'Dr. Jorge Castillo (Centro pediátrico)',
-      procesado_por: estado === 'PENDIENTE' ? null : quimico,
-      validado_por: estado === 'VALIDADO' ? res.personal.rgodoy : null,
+  const examen = (_clave: string, p: Adulto | Nino, tipo: Tipo, fecha: string, hora: string, estado: Orden['estado'], perfil: Perfil) => {
+    ordenes.push({
+      p, tipo, fecha, estado, perfil, quimico: rng.uno(quimicos), orden: new Date(`${fecha}T${hora}:00-06:00`),
+      solicitante: 'cronicos' in p ? rng.uno(SOLICITANTES) : 'Dr. Jorge Castillo (Centro pediátrico)',
       observaciones: perfil === 'erc' && tipo === 'quimica' && estado === 'VALIDADO' ? 'Valor crítico de potasio comunicado al médico tratante.' : null,
-      resultados: estado === 'VALIDADO' ? resultados(tipo, perfil, rng, p.sexo) : null,
     });
-    res.examenes.push({ idPaciente: res.pacientes[p.clave]!, idExamen: _id.toHexString(), fecha });
   };
 
   // Historial de cada paciente: 1–3 exámenes validados en el último año, coherentes con su perfil.
@@ -224,6 +166,11 @@ export async function sembrarLaboratorio(db: Db): Promise<ResultadoLaboratorio> 
   // Citas de toma de muestra (las atiende un químico biólogo).
   const citaLab = (p: Adulto | Nino, fecha: string, hora: string, motivo: string, estado: string) => {
     const quien = fecha === HOY ? 'msic' : rng.uno(quimicos);
+    // Dos citas al azar pueden caer en la misma hora del mismo químico: se corre 15 minutos.
+    while (agenda.ocupada(quien, fecha, hora)) {
+      const m = Number(hora.slice(0, 2)) * 60 + Number(hora.slice(3, 5)) + 15;
+      hora = `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+    }
     agenda.reservar(quien, fecha, hora);
     citas.push({
       _id: oid(`cita:${p.clave}:${fecha}:${hora}`), paciente_id: new ObjectId(res.pacientes[p.clave]!), medico_id: res.personal[quien],
@@ -287,7 +234,28 @@ export async function sembrarLaboratorio(db: Db): Promise<ResultadoLaboratorio> 
     });
   }
 
-  await db.collection('examenes').insertMany(examenes);
+  // Exámenes en orden cronológico, para que los códigos LAB-aaaa-mm-nnnn sigan la fecha de la orden.
+  const repo = new MongoExamenRepository(db);
+  const ahora = Date.now();
+  // Generador aparte: los valores no alteran la secuencia con la que se arman citas y consultas.
+  const rngResultados = azar(3304);
+  const nombreDe = (clave: string) => {
+    const x = PERSONAL_LABORATORIO.find((q) => q.clave === clave)!;
+    return `${x.rol === 'QUIMICO_BIOLOGO' ? 'Q.B.' : 'Dr.'} ${x.nombres} ${x.apellidos}`.replace(/^Dr\. (Elisa)/, 'Dra. $1');
+  };
+  const firma = (clave: string, fecha: Date): Firma => ({ idUsuario: res.personal[clave]!, nombre: nombreDe(clave), fecha: fecha.toISOString() });
+  for (const o of ordenes.sort((x, y) => x.orden.getTime() - y.orden.getTime())) {
+    const tipo = CATALOGO.find((t) => t.clave === o.tipo)!;
+    const { id } = await repo.ordenar({ idPaciente: res.pacientes[o.p.clave]!, tipo: o.tipo, nombre: tipo.nombre, medicoSolicitante: o.solicitante, fecha: o.orden });
+    if (o.estado !== 'PENDIENTE') {
+      // Lo de hoy que aún no estaría listo se fecha unos minutos antes de correr la semilla.
+      const listo = Math.min(o.orden.getTime() + ENTREGA_HORAS[o.tipo] * 3600_000, Math.max(ahora - 10 * 60_000, o.orden.getTime() + 20 * 60_000));
+      const { resultados, critico } = construirResultados(tipo, captura(o.tipo, o.perfil, rngResultados, o.p.sexo));
+      await repo.guardarResultados(id, { resultados, critico, observaciones: o.observaciones, por: firma(o.quimico, new Date(Math.max(listo - 30 * 60_000, o.orden.getTime() + 15 * 60_000))) });
+      if (o.estado === 'VALIDADO') await repo.validar(id, firma('rgodoy', new Date(listo)));
+    }
+    res.examenes.push({ idPaciente: res.pacientes[o.p.clave]!, idExamen: id, fecha: o.fecha });
+  }
   await db.collection('citas').insertMany(citas);
   await db.collection('consultas').insertMany(consultas);
   return res;

@@ -33,6 +33,9 @@ const HORAS = ['07:30', '08:00', '08:30', '09:00', '09:30', '10:00', '10:30', '1
 export class Agenda {
   private ocupado = new Set<string>();
   constructor(private readonly rng: ReturnType<typeof azar>) {}
+  ocupada(medico: string, fecha: string, hora: string): boolean {
+    return this.ocupado.has(`${medico}|${fecha}|${hora}`);
+  }
   reservar(medico: string, fecha: string, hora?: string): string {
     if (hora) {
       const k = `${medico}|${fecha}|${hora}`;

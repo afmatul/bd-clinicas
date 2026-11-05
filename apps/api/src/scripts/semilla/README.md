@@ -49,15 +49,11 @@ Los adaptadores de cada módulo leen estas formas. En Mongo los ids de paciente 
 ```js
 personal     { _id, nombres, apellidos, numero_colegiado, especialidades: [string], rol: 'MEDICO' | 'QUIMICO_BIOLOGO', activo }
 medicamentos { _id, nombre, presentacion, concentracion }
-tipos_examen { _id, clave: 'hematologia' | 'orina' | 'urocultivo' | 'quimica', nombre, muestra, tiempo_entrega_horas,
-               campos: [{ clave, nombre, unidad?, rango_min?, rango_max? }] }
+tipos_examen { _id: clave, nombre, corto, muestra, campos: [...] }   ← catálogo del módulo (modules/laboratorio/domain/catalogo.ts)
 pacientes    { ...ver PacienteDoc, contactos_emergencia: [{ nombre_completo, parentesco, telefonos }],
                alergias: [{ _id, tipo, descripcion, severidad, medicamento_id: ObjectId | null }], antecedentes: [{ _id, tipo, descripcion }] }
-examenes     { _id, paciente_id: ObjectId, tipo, estado, fecha_orden: Date, fecha_toma, fecha_resultado, solicitado_por: string,
-               procesado_por, validado_por (id de personal), observaciones, resultados }
-  resultados hematologia: { hemoglobina, hematocrito, leucocitos, neutrofilos, linfocitos, plaquetas, vcm }   (todos double)
-  resultados orina/quimica: { valores: [{ clave, nombre, valor, unidad, rango_min, rango_max, fuera_de_rango }] }
-  resultados urocultivo: { organismo, recuento_ufc, antibiograma: [{ antibiotico, interpretacion: 'S' | 'I' | 'R' }] }
+examenes     ← los crea el repositorio del módulo (ordenar → capturar → validar); forma en
+               modules/laboratorio/adapters/mongo/examen-repository.ts (ExamenDoc) y $jsonSchema en infra/db/laboratorio/mongo-init.js
 citas        { _id, paciente_id: ObjectId, medico_id: string, fecha: 'yyyy-mm-dd', hora: 'HH:mm', motivo, estado, creada_en: Date }
 consultas    { _id, paciente_id: ObjectId, cita_id, medico_id, fecha: 'yyyy-mm-dd', hora, motivo_consulta, historia_enfermedad_actual,
                notas_evolucion, peso_kg, talla_cm, signos_vitales: { presion_sistolica, … },
