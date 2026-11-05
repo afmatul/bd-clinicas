@@ -1,0 +1,16 @@
+{
+  "name": "@red-clinica/design-system",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Copia sincronizada del design system Red Clínica. No editar a mano: npm run sync:design-system.",
+  "exports": {
+    ".": "./index.css",
+    "./tokens.css": "./tokens.css",
+    "./components.css": "./components.css",
+    "./layout.css": "./layout.css",
+    "./motion.css": "./motion.css",
+    "./tokens.json": "./tokens.json",
+    "./logos/*": "./logos/*",
+    "./iconos/*": "./iconos/*"
+  }
+}

@@ -1,0 +1,5 @@
+[
+  { "index": { "fields": ["type", "cui"] }, "name": "type-cui", "type": "json" },
+  { "index": { "fields": ["type", "apellidos"] }, "name": "type-apellidos", "type": "json" },
+  { "index": { "fields": ["type", "medico_id", "fecha"] }, "name": "type-medico-fecha", "type": "json" }
+]

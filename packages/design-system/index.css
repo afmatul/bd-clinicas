@@ -1,0 +1,5 @@
+/* Punto de entrada del design system: tokens → componentes rc-* → layout del prototipo → movimiento. */
+@import './tokens.css';
+@import './components.css';
+@import './layout.css';
+@import './motion.css';

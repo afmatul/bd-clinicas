@@ -1,0 +1,60 @@
+/* Red Clínica — movimiento. Solo usa --duration-* de tokens.css y la curva ease-out del sistema.
+   Principios: el movimiento orienta (qué apareció, de dónde viene), nunca decora; es corto
+   (120–320 ms), sutil (≤ 8 px) y se apaga por completo con prefers-reduced-motion. */
+
+@keyframes rc-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes rc-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes rc-pop { from { opacity: 0; transform: translateY(-4px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes rc-slide-in { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+@keyframes rc-modal-in { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+
+/* Entrada de página: los bloques de una vista aparecen en cascada corta (máx. 6 pasos de 40 ms). */
+.view > * { animation: rc-enter var(--duration-slow) ease-out both; }
+.view > :nth-child(2) { animation-delay: 40ms; }
+.view > :nth-child(3) { animation-delay: 80ms; }
+.view > :nth-child(4) { animation-delay: 120ms; }
+.view > :nth-child(5) { animation-delay: 160ms; }
+.view > :nth-child(n + 6) { animation-delay: 200ms; }
+
+/* Métricas y tarjetas dentro de rejillas: cascada horizontal. */
+.stats > * { animation: rc-enter var(--duration-slow) ease-out both; }
+.stats > :nth-child(2) { animation-delay: 50ms; }
+.stats > :nth-child(3) { animation-delay: 100ms; }
+.stats > :nth-child(4) { animation-delay: 150ms; }
+
+/* Filas de tabla al cargar datos (las primeras 8; el resto aparece con la última). */
+.rc-table tbody tr { animation: rc-fade var(--duration-base) ease-out both; }
+.rc-table tbody tr:nth-child(2) { animation-delay: 30ms; }
+.rc-table tbody tr:nth-child(3) { animation-delay: 60ms; }
+.rc-table tbody tr:nth-child(4) { animation-delay: 90ms; }
+.rc-table tbody tr:nth-child(5) { animation-delay: 120ms; }
+.rc-table tbody tr:nth-child(6) { animation-delay: 150ms; }
+.rc-table tbody tr:nth-child(7) { animation-delay: 180ms; }
+.rc-table tbody tr:nth-child(n + 8) { animation-delay: 210ms; }
+
+/* Lo que flota entra desde su origen. */
+.rc-menu { transform-origin: top center; animation: rc-pop var(--duration-base) ease-out both; }
+.rc-toast { animation: rc-slide-in var(--duration-slow) ease-out both; }
+.rc-modal { animation: rc-modal-in var(--duration-slow) ease-out both; }
+.rc-scrim, .scrim { animation: rc-fade var(--duration-base) ease-out both; }
+.rc-alert { animation: rc-enter var(--duration-base) ease-out both; }
+
+/* Respuesta al gesto. */
+.rc-btn { transition-property: background-color, border-color, color, box-shadow, transform; }
+.rc-btn:active:not(:disabled) { transform: scale(.98); }
+.rc-card--interactive { transition: box-shadow var(--duration-fast) ease-out, transform var(--duration-fast) ease-out, border-color var(--duration-fast) ease-out; }
+.rc-card--interactive:hover { transform: translateY(-1px); }
+.rc-nav-item { transition: background-color var(--duration-fast) ease-out, color var(--duration-fast) ease-out; }
+.rc-nav-item svg { transition: transform var(--duration-fast) ease-out; }
+.rc-nav-item:hover svg { transform: translateX(1px); }
+.rc-tab { transition: color var(--duration-fast) ease-out, box-shadow var(--duration-base) ease-out, border-color var(--duration-base) ease-out; }
+.rc-pill, .rc-badge { transition: background-color var(--duration-base) ease-out, color var(--duration-base) ease-out; }
+.rowlink .rc-avatar { transition: transform var(--duration-fast) ease-out; }
+.rowlink:hover .rc-avatar { transform: scale(1.05); }
+
+@media (prefers-reduced-motion: reduce) {
+  .view > *, .stats > *, .rc-table tbody tr, .rc-menu, .rc-toast, .rc-modal, .rc-scrim, .scrim, .rc-alert {
+    animation: none;
+  }
+  .rc-btn:active:not(:disabled), .rc-card--interactive:hover, .rc-nav-item:hover svg, .rowlink:hover .rc-avatar { transform: none; }
+}
