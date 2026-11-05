@@ -1,0 +1,4 @@
+/* Punto de entrada del design system: tokens → componentes rc-* → layout del prototipo. */
+@import './tokens.css';
+@import './components.css';
+@import './layout.css';

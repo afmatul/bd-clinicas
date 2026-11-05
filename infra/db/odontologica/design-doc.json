@@ -1,0 +1,5 @@
+{
+  "_id": "_design/odontologica",
+  "language": "javascript",
+  "validate_doc_update": "function (nuevo, viejo, userCtx) {\n  if (nuevo._deleted) { if (userCtx.roles.indexOf('_admin') < 0) throw({ forbidden: 'Las bajas son lógicas; no se borran documentos.' }); return; }\n  var tipos = ['paciente', 'consulta', 'cita', 'personal', 'medicamento'];\n  if (tipos.indexOf(nuevo.type) < 0) throw({ forbidden: 'type inválido: ' + nuevo.type });\n  if (nuevo._id.indexOf(nuevo.type + ':') !== 0) throw({ forbidden: 'El _id debe empezar con ' + nuevo.type + ':' });\n  if (nuevo.type === 'paciente') {\n    if (!nuevo.nombres || !nuevo.apellidos || !nuevo.fecha_nacimiento) throw({ forbidden: 'Paciente sin nombres, apellidos o fecha de nacimiento.' });\n    if (['ACTIVO', 'BAJA'].indexOf(nuevo.estado) < 0) throw({ forbidden: 'estado inválido' });\n    if (nuevo.estado === 'BAJA' && !(nuevo.baja && nuevo.baja.motivo)) throw({ forbidden: 'Una baja exige motivo.' });\n  }\n  if (nuevo.type === 'consulta' && viejo && viejo.cerrada) throw({ forbidden: 'Una consulta cerrada no se edita.' });\n}"
+}

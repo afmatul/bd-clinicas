@@ -1,0 +1,20 @@
+{
+  "name": "red-clinica",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Plataforma de historiales clínicos para cuatro instituciones médicas, cada una con su propio motor de base de datos.",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "dev": "npm run dev --workspace @red-clinica/api & npm run dev --workspace @red-clinica/web",
+    "dev:api": "npm run dev --workspace @red-clinica/api",
+    "dev:web": "npm run dev --workspace @red-clinica/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "check:tokens": "node scripts/check-tokens.mjs",
+    "sync:design-system": "node scripts/sync-design-system.mjs",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:seed": "npm run seed --workspace @red-clinica/api"
+  },
+  "engines": { "node": ">=22" }
+}
