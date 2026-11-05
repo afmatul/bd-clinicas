@@ -19,7 +19,13 @@ CREATE TABLE paciente (
   tipo_sangre      VARCHAR(5),
   direccion        VARCHAR(255),
   estado           VARCHAR(30) NOT NULL DEFAULT 'ACTIVO',
+  fecha_baja       DATE,
+  motivo_baja      TEXT,
+  id_pediatra_baja INT,
   CHECK (estado IN ('ACTIVO', 'BAJA')),
+  -- Una baja lógica exige fecha y motivo (igual que en el hospital).
+  CHECK (estado <> 'BAJA' OR (fecha_baja IS NOT NULL AND motivo_baja IS NOT NULL)),
+  FOREIGN KEY (id_pediatra_baja) REFERENCES pediatra (id_usuario),
   INDEX paciente_apellidos_idx (apellidos)
 ) ENGINE = InnoDB;
 

@@ -7,7 +7,7 @@ import type { PacienteRepository } from '../../ports/paciente-repository.js';
 
 /**
  * Centro pediátrico · MySQL InnoDB. El paciente no tiene teléfonos propios: se contacta
- * a sus responsables. El ER no tiene fecha ni motivo de baja; quedan en la bitácora.
+ * a sus responsables. La baja guarda fecha, motivo y pediatra en la ficha.
  */
 export class MysqlPacienteRepository implements PacienteRepository {
   constructor(private readonly db: mysql.Pool) {}
@@ -51,7 +51,7 @@ export class MysqlPacienteRepository implements PacienteRepository {
       procedencia: null,
       telefonos: tel.map((r) => r.telefono),
       emails: [],
-      baja: null,
+      baja: p.estado === 'BAJA' ? { fecha: p.fecha_baja, motivo: p.motivo_baja } : null,
     };
   }
 
@@ -93,8 +93,11 @@ export class MysqlPacienteRepository implements PacienteRepository {
     }
   }
 
-  async darDeBaja(id: string, _b: Baja) {
-    await this.db.query(`UPDATE paciente SET estado = 'BAJA' WHERE id_paciente = ?`, [Number(id)]);
+  async darDeBaja(id: string, b: Baja) {
+    await this.db.query(
+      `UPDATE paciente SET estado = 'BAJA', fecha_baja = ?, motivo_baja = ?, id_pediatra_baja = ? WHERE id_paciente = ?`,
+      [b.fecha, b.motivo, b.idPersonal ? Number(b.idPersonal) : null, Number(id)],
+    );
   }
 }
 

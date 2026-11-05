@@ -93,5 +93,5 @@ Reglas:
 
 ## Decisiones pendientes
 
-- **Baja en el pediátrico:** el ER de MySQL no tiene `fecha_baja` ni `motivo_baja` en `paciente`; hoy el motivo queda solo en la bitácora. Agregar las columnas sería una corrección del modelo para la Entrega II.
-- **"Resultados" en el hospital:** el prototipo muestra esa sección al hospital, pero la arquitectura solo habilita el módulo `laboratorio` al Laboratorio clínico.
+- ~~**Baja en el pediátrico**~~ Resuelto: `paciente` en MySQL ahora tiene `fecha_baja`, `motivo_baja` e `id_pediatra_baja`, igual que el hospital (modelo corregido para la Entrega II).
+- ~~**"Resultados" en el hospital**~~ Resuelto: la sección se quitó del menú del hospital; los exámenes viven solo en el Laboratorio (MongoDB) y las instituciones no comparten datos.

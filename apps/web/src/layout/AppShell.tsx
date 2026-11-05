@@ -25,7 +25,7 @@ const NAV: { to: string; label: string; icono: Icono; para: InstitucionClave[]; 
   { to: '/citas', label: 'Citas', icono: CalendarDays, para: ['hospital', 'pediatrico', 'odontologia'], badge: { n: 14, soft: true } },
   { to: '/consulta', label: 'Consulta', icono: Stethoscope, para: ['hospital', 'pediatrico'] },
   { to: '/crecimiento', label: 'Crecimiento y vacunas', icono: Ruler, para: ['pediatrico'] },
-  { to: '/laboratorio', label: 'Resultados', icono: FlaskConical, para: ['laboratorio', 'hospital'], badge: { n: 1 } },
+  { to: '/laboratorio', label: 'Resultados', icono: FlaskConical, para: ['laboratorio'], badge: { n: 1 } },
   { to: '/recepcion', label: 'Recepción', icono: ClipboardList, para: ['odontologia'] },
 ];
 
