@@ -20,7 +20,7 @@ export function useInteraccionesPrototipo() {
         tab.closest('.rc-tabs')!.querySelectorAll('.rc-tab').forEach((x) => x.setAttribute('aria-selected', String(x === tab)));
       }
       const paso = t.closest('.rc-stepper button');
-      if (paso) {
+      if (paso && !paso.closest('[data-controlado]')) {
         const s = paso.closest('.rc-stepper')!;
         const input = s.querySelector('input')!;
         const delta = paso === s.querySelectorAll('button')[0] ? -1 : 1;

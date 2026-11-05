@@ -19,7 +19,7 @@ export class ErroresFilter implements ExceptionFilter {
   catch(err: unknown, host: ArgumentsHost) {
     const reply = host.switchToHttp().getResponse<FastifyReply>();
     if (err instanceof ErrorDeDominio) {
-      return reply.status(ESTADO[err.codigo] ?? 400).send({ codigo: err.codigo, mensaje: err.message });
+      return reply.status(ESTADO[err.codigo] ?? 400).send({ codigo: err.codigo, mensaje: err.message, ...(err.detalle !== undefined ? { detalle: err.detalle } : {}) });
     }
     if (err instanceof ZodError) {
       return reply.status(400).send({

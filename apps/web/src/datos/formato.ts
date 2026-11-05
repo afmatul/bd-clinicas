@@ -19,3 +19,37 @@ export const iniciales = (nombres: string, apellidos: string) => `${nombres[0] ?
 /** Variante de avatar estable por persona (el prototipo alterna base, neutral y accent). */
 export const varianteAvatar = (id: string) =>
   ['', 'rc-avatar--neutral', '', 'rc-avatar--accent', 'rc-avatar--neutral'][[...id].reduce((a, c) => a + c.charCodeAt(0), 0) % 5];
+
+// ---------- Fechas de agenda (zona de Guatemala, igual que la API) ----------
+
+/** Hoy y la hora actual en Guatemala: yyyy-mm-dd y HH:mm. */
+export function ahoraLocal(d = new Date()): { fecha: string; hora: string } {
+  const s = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'America/Guatemala', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+  }).format(d);
+  const [fecha, hora] = s.split(' ') as [string, string];
+  return { fecha, hora };
+}
+
+const aDate = (f: string) => new Date(`${f}T12:00:00Z`);
+export const sumarDias = (f: string, n: number) => { const d = aDate(f); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
+/** Lunes de la semana de la fecha. */
+export const lunesDe = (f: string) => sumarDias(f, -((aDate(f).getUTCDay() + 6) % 7));
+export const diaDelMes = (f: string) => aDate(f).getUTCDate();
+export const diaCorto = (f: string) => ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'][aDate(f).getUTCDay()]!;
+
+const largo = new Intl.DateTimeFormat('es-GT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+const sinAnio = new Intl.DateTimeFormat('es-GT', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
+const mayus = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+/** "Jueves 5 de noviembre de 2026" */
+export const fechaLarga = (f: string) => mayus(largo.format(aDate(f)).replace(',', ''));
+/** "Lunes 9 de noviembre" */
+export const fechaSinAnio = (f: string) => mayus(sinAnio.format(aDate(f)).replace(',', ''));
+/** dd/mm/aaaa */
+export const fechaCorta = (f: string) => `${f.slice(8, 10)}/${f.slice(5, 7)}/${f.slice(0, 4)}`;
+
+/** Minutos entre dos horas HH:mm del mismo día. */
+export const minutosEntre = (desde: string, hasta: string) => {
+  const m = (h: string) => Number(h.slice(0, 2)) * 60 + Number(h.slice(3, 5));
+  return Math.max(0, m(hasta) - m(desde));
+};
