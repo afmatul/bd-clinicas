@@ -1,11 +1,17 @@
-// Puerto del módulo odontologia. Pendiente de implementar: ver README.md del módulo.
+import type { Odontograma, ProcedimientoPieza } from '@red-clinica/shared';
 
-/** Notación FDI: piezas 11–18, 21–28, 31–38, 41–48. */
-export type Pieza = `${1 | 2 | 3 | 4}${1 | 2 | 3 | 4 | 5 | 6 | 7 | 8}`;
-export interface EstadoPieza { estado: 'SANA' | 'CARIES' | 'OBTURADA' | 'AUSENTE' | 'CORONA' | 'ENDODONCIA'; caras?: string[]; nota?: string }
-
+/**
+ * Odontograma actual del paciente en notación FDI. En CouchDB vive embebido en el documento
+ * paciente:<id>; el historial sale de los procedimientos de las consultas cerradas.
+ */
 export interface OdontogramaRepository {
-  obtener(idPaciente: string): Promise<Partial<Record<Pieza, EstadoPieza>>>;
-  /** Escribe en el documento paciente con control optimista por _rev; relee y reintenta ante 409. */
-  aplicar(idPaciente: string, cambios: Partial<Record<Pieza, EstadoPieza>>): Promise<void>;
+  /** null si el paciente no existe. */
+  obtener(idPaciente: string): Promise<Odontograma | null>;
+  historial(idPaciente: string): Promise<ProcedimientoPieza[]>;
+  /**
+   * Relee el documento, aplica `transformar` sobre el odontograma vigente y lo guarda con su _rev.
+   * Ante un 409 (otra persona guardó antes) relee y vuelve a aplicar, así las reglas se evalúan
+   * siempre contra la versión que realmente se sobrescribe.
+   */
+  actualizar(idPaciente: string, transformar: (actual: Odontograma) => Odontograma): Promise<Odontograma | null>;
 }
