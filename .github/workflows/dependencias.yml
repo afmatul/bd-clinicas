@@ -1,0 +1,27 @@
+name: Dependencias
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  revisar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      # .npmrc ya tiene ignore-scripts=true; se repite aquí por si alguien lo quita.
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high
+      - run: npm audit signatures
+      - run: npm run typecheck
+      - run: npm run check:tokens

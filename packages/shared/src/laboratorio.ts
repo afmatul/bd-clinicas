@@ -84,7 +84,7 @@ export const ExamenDetalle = ExamenResumen.extend({
   observaciones: z.string().nullable(),
   secciones: z.array(SeccionResultado),
   /** El documento de resultados tal como está en MongoDB (forma según el tipo). */
-  resultados: z.record(z.unknown()).nullable(),
+  resultados: z.record(z.string(), z.unknown()).nullable(),
 });
 export type ExamenDetalle = z.infer<typeof ExamenDetalle>;
 
@@ -117,7 +117,7 @@ export type OrdenarExamenInput = z.infer<typeof OrdenarExamenInput>;
  * Urocultivo agrega el antibiograma como lista.
  */
 export const CapturarResultadosInput = z.object({
-  valores: z.record(z.string().trim()),
+  valores: z.record(z.string(), z.string().trim()),
   antibiograma: z
     .array(z.object({ antibiotico: z.string().trim().min(1), interpretacion: z.enum(['S', 'I', 'R']) }))
     .default([]),
