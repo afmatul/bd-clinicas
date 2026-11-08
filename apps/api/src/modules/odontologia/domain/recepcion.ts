@@ -1,21 +1,13 @@
+import { ESTADOS_ACTIVOS, HORARIOS, type EstadoCita } from '@red-clinica/shared';
 import { ReglaDeNegocio } from '../../../shared/errores.js';
-
-/** Horario de la clínica: turnos de 30 minutos de 08:00 a 16:30 (el último termina a las 17:00). */
-export const APERTURA = 8 * 60;
-export const CIERRE = 17 * 60;
-export const DURACION_TURNO = 30;
 
 export const aMinutos = (hora: string) => {
   const [h, m] = hora.split(':').map(Number);
   return h! * 60 + m!;
 };
-export const aHora = (min: number) => `${String(Math.floor(min / 60)).padStart(2, '0')}:${String(min % 60).padStart(2, '0')}`;
 
-export function horariosDelDia(): string[] {
-  const r: string[] = [];
-  for (let m = APERTURA; m + DURACION_TURNO <= CIERRE; m += DURACION_TURNO) r.push(aHora(m));
-  return r;
-}
+/** La jornada es la misma del módulo agenda (bloques de 30 minutos), para no ofrecer un turno que agenda rechace. */
+export const horariosDelDia = (): string[] => HORARIOS;
 
 /**
  * Primer turno libre a partir de `desde` (minutos del día) para alguno de los odontólogos.
@@ -56,8 +48,8 @@ export function dividirNombre(nombreCompleto: string): { nombres: string; apelli
 const capitalizar = (t: string) =>
   t.split(' ').map((p) => (['de', 'del', 'la', 'las', 'los', 'y'].includes(p.toLowerCase()) ? p.toLowerCase() : p.charAt(0).toUpperCase() + p.slice(1).toLowerCase())).join(' ');
 
-/** Las citas canceladas o con inasistencia liberan el horario. */
-export const liberaHorario = (estado: string) => estado === 'CANCELADA' || estado === 'NO_ASISTIO';
+/** Solo las citas activas ocupan el horario: misma regla que el módulo agenda. */
+export const liberaHorario = (estado: EstadoCita) => !ESTADOS_ACTIVOS.includes(estado);
 
 /** Zona horaria de la clínica: la fecha de "hoy" y la hora actual no dependen del reloj del servidor. */
 export const ZONA_CLINICA = 'America/Guatemala';

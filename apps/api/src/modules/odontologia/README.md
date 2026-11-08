@@ -17,18 +17,17 @@ Contratos zod en `packages/shared/src/odontologia.ts`.
 ## Modelo en CouchDB (una base, campo `type`)
 
 - `paciente:<uuid>` lleva embebido `odontograma: { "<pieza FDI>": { estado, caras?, nota? } }`. Cada cambio reescribe ese único documento con su `_rev`; ante un 409 se relee, se vuelven a evaluar las reglas y se reintenta.
-- `cita:<medico_id>:<yyyy-mm-dd>T<HH:mm>`: el `_id` determinista hace que Couch rechace un segundo turno en el mismo horario. Si el ocupante está CANCELADA o NO_ASISTIO se copia a `cita:<uuid>` con `reemplazada_por` y se reutiliza el `_id` (en Couch no se borra). Misma forma que usa el módulo agenda.
+- `cita:<medico_id>:<yyyy-mm-dd>T<HH:mm>`: la escribe el módulo agenda. Recepción agenda con sus casos de uso (token `AGENDA`, importando `AgendaModule`), así el choque de horario, la jornada y la bitácora de la cita viven en un solo lugar. Odontología solo lee las citas del día y les agrega `llegada_en`.
 - `consulta:<uuid>` con `procedimientos: [{ pieza, procedimiento, caras?, estado_resultante }]` alimenta el historial.
 - `personal:<id>` con `rol: "ODONTOLOGO"` son los odontólogos de la recepción.
 - Índices nuevos en `infra/db/odontologica/indices.json`: `type-fecha-hora` (turnos del día) y `type-paciente-fecha` (historial).
 
 ## Reglas (domain/)
 
-- Turnos de 30 min de 08:00 a 16:30; el siguiente libre es el primero desde la hora actual; si dos odontólogos lo tienen libre, gana el que tiene menos turnos.
+- Jornada de agenda (`HORARIOS` de shared, 30 min, sin domingos); el siguiente libre es el primero desde la hora actual; si dos odontólogos lo tienen libre, gana el que tiene menos turnos.
 - Una pieza AUSENTE solo vuelve como CORONA (implante). CARIES y OBTURADA exigen caras; los demás estados no llevan caras.
 - El nombre completo del registro rápido se divide en nombres y apellidos (dos nombres si hay cuatro palabras o más; "de", "del", "la" se quedan con el apellido).
 
 ## Pendiente
 
-- Cuando el módulo agenda exporte sus casos de uso (token `AGENDA`), `CouchRecepcionRepository.agendar/turnosDelDia/marcarLlegada` deben delegar en ellos para que la regla del choque viva en un solo lugar.
 - No hay pantalla de odontograma en el prototipo; la API queda lista para agregarla a la ficha del paciente.
