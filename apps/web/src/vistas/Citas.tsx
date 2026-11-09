@@ -3,16 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarX, ChevronDown, ChevronLeft, ChevronRight, MoreVertical, Plus, Stethoscope, X } from 'lucide-react';
+import { CalendarX, ChevronLeft, ChevronRight, Plus, X } from 'lucide-react';
 import { ESTADOS_ACTIVOS, HORARIOS, type CitaDetalle } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
-import { useToast } from '../layout/Toasts';
-import { agenda, cambiarEstadoCita, listarMedicos, nombreProfesional, type Profesional } from '../api/agenda';
+import { agenda, listarMedicos, nombreProfesional, type Profesional } from '../api/agenda';
 import { PillCita, LEYENDA_CITAS } from '../componentes/EstadoCita';
-import { ahoraLocal, diaCorto, diaDelMes, fechaLarga, fechaSinAnio, iniciales, lunesDe, sumarDias, varianteAvatar } from '../datos/formato';
+import { useAccionesCita } from '../componentes/AccionesCita';
+import { Selector } from '../componentes/Selector';
+import { ahoraLocal, diaCorto, diaDelMes, fechaLarga, iniciales, lunesDe, sumarDias, varianteAvatar } from '../datos/formato';
 
 type Vista = 'dia' | 'semana' | 'mes';
-type Accion = 'CONFIRMADA' | 'CANCELADA' | 'NO_ASISTIO';
 
 /** Rango que se pide a la API según la vista: semana (lun–sáb) o cuatro semanas desde el lunes. */
 function rango(vista: Vista, fecha: string) {
@@ -22,7 +22,6 @@ function rango(vista: Vista, fecha: string) {
 
 export default function Citas() {
   const { perfil } = useSesion();
-  const toast = useToast();
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -34,9 +33,6 @@ export default function Citas() {
 
   const [citas, setCitas] = useState<CitaDetalle[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [menu, setMenu] = useState<string | null>(null);
-  const [confirmar, setConfirmar] = useState<{ cita: CitaDetalle; accion: Accion } | null>(null);
-  const [guardando, setGuardando] = useState(false);
   const { desde, hasta } = rango(vista, fecha);
 
   useEffect(() => {
@@ -49,13 +45,8 @@ export default function Citas() {
     agenda({ idMedico, desde, hasta }).then((r) => setCitas(r.citas)).catch((e: Error) => setError(e.message));
   }, [idMedico, desde, hasta]);
   useEffect(() => { setCitas(null); cargar(); }, [cargar]);
-
-  useEffect(() => {
-    if (!menu) return;
-    const cerrar = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest('[data-menu-cita]')) setMenu(null); };
-    document.addEventListener('click', cerrar);
-    return () => document.removeEventListener('click', cerrar);
-  }, [menu]);
+  const acciones = useAccionesCita(cargar);
+  const mensajeError = error ?? acciones.error;
 
   const cambiar = (cambios: Record<string, string | undefined>) => {
     const p = new URLSearchParams(params);
@@ -88,32 +79,13 @@ export default function Citas() {
   const cerradas = resumen.atendidas + resumen.noAsistio;
   const avance = resumen.total ? Math.round((cerradas / resumen.total) * 100) : 0;
   const ahoraSlot = HORARIOS.filter((h) => h <= ahora.hora).pop();
-  const esMedico = perfil?.usuario.rol === 'MEDICO' && perfil.usuario.idPersonal === idMedico;
+  // El ADMIN actúa con todos los roles (demostración), médico incluido.
+  const esMedico = (perfil?.usuario.rol === 'MEDICO' || perfil?.usuario.rol === 'ADMIN') && perfil.usuario.idPersonal === idMedico;
   const paso = vista === 'mes' ? 28 : vista === 'semana' ? 7 : 1;
   const linkAgendar = (h: string) => `/nueva-cita?${new URLSearchParams({ ...(idMedico ? { medico: idMedico } : {}), fecha, hora: h })}`;
 
-  async function ejecutar(cita: CitaDetalle, accion: Accion) {
-    setGuardando(true);
-    try {
-      await cambiarEstadoCita(cita.id, accion);
-      const quien = `${cita.paciente.nombres} ${cita.paciente.apellidos}`;
-      toast(
-        accion === 'CONFIRMADA' ? 'Cita confirmada' : accion === 'CANCELADA' ? 'Cita cancelada' : 'Inasistencia registrada',
-        `${quien} · ${fechaSinAnio(cita.fecha)}, ${cita.hora}.`,
-      );
-      setConfirmar(null);
-      cargar();
-    } catch (e) {
-      setError((e as Error).message);
-      setConfirmar(null);
-    } finally {
-      setGuardando(false);
-    }
-  }
-
   const tarjetaCita = (c: CitaDetalle) => {
     const nombre = `${c.paciente.nombres} ${c.paciente.apellidos}`;
-    const activa = ESTADOS_ACTIVOS.includes(c.estado);
     return (
       <div className="slot__b">
         <Link className="rowlink" href={`/pacientes/${c.idPaciente}`}>
@@ -127,32 +99,7 @@ export default function Citas() {
         </Link>
         <div className="row">
           <PillCita estado={c.estado} />
-          {activa && (
-            <span data-menu-cita style={{ position: 'relative' }}>
-              <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label={`Acciones para la cita de ${nombre}`}
-                aria-haspopup="menu" aria-expanded={menu === c.id} onClick={() => setMenu(menu === c.id ? null : c.id)}>
-                <MoreVertical strokeWidth={1.75} aria-hidden="true" />
-              </button>
-              {menu === c.id && (
-                <div className="rc-menu" role="menu" style={{ position: 'absolute', right: 0, top: 'calc(100% + 4px)', minWidth: '200px' }}>
-                  {esMedico && (
-                    <Link className="rc-option" role="menuitem" href={`/consulta?${new URLSearchParams({ paciente: c.idPaciente, cita: c.id })}`}>
-                      <Stethoscope strokeWidth={1.75} aria-hidden="true" />{c.estado === 'EN_CONSULTA' ? 'Continuar consulta' : 'Atender'}
-                    </Link>
-                  )}
-                  {c.estado === 'PROGRAMADA' && (
-                    <button className="rc-option" role="menuitem" onClick={() => { setMenu(null); void ejecutar(c, 'CONFIRMADA'); }}>Confirmar</button>
-                  )}
-                  {c.estado !== 'EN_CONSULTA' && (
-                    <>
-                      <button className="rc-option" role="menuitem" onClick={() => { setMenu(null); setConfirmar({ cita: c, accion: 'NO_ASISTIO' }); }}>No asistió</button>
-                      <button className="rc-option" role="menuitem" onClick={() => { setMenu(null); setConfirmar({ cita: c, accion: 'CANCELADA' }); }}>Cancelar cita</button>
-                    </>
-                  )}
-                </div>
-              )}
-            </span>
-          )}
+          {acciones.menu(c, esMedico)}
         </div>
       </div>
     );
@@ -184,20 +131,19 @@ export default function Citas() {
           <button className="rc-btn rc-btn--secondary rc-btn--sm rc-btn--icon" aria-label="Anterior" onClick={() => cambiar({ fecha: sumarDias(fecha, -paso) })}>
             <ChevronLeft strokeWidth={1.75} aria-hidden="true" />
           </button>
-          <button className="rc-btn rc-btn--secondary rc-btn--sm" onClick={() => cambiar({ fecha: undefined })}>Hoy</button>
+          <button className="rc-btn rc-btn--secondary rc-btn--sm" onClick={() => cambiar({ fecha: undefined })}>
+            {vista === 'mes' ? 'Este mes' : vista === 'semana' ? 'Esta semana' : 'Hoy'}
+          </button>
           <button className="rc-btn rc-btn--secondary rc-btn--sm rc-btn--icon" aria-label="Siguiente" onClick={() => cambiar({ fecha: sumarDias(fecha, paso) })}>
             <ChevronRight strokeWidth={1.75} aria-hidden="true" />
           </button>
         </div>
         <span className="rc-toolbar__spacer" />
-        <div className="rc-control rc-control--select rc-control--sm">
-          <select className="rc-input" aria-label="Médico" value={idMedico ?? ''} onChange={(e) => cambiar({ medico: e.target.value })}>
-            {!medicos && <option value={idMedico ?? ''}>Cargando…</option>}
-            {medicos?.length === 0 && <option value="">Sin médicos con agenda</option>}
-            {medicos?.map((m) => <option key={m.id} value={m.id}>{nombreProfesional(m)}</option>)}
-          </select>
-          <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-        </div>
+        <Selector pequeno aria-label="Médico" value={idMedico ?? ''} onChange={(v) => cambiar({ medico: v })}>
+          {!medicos && <option value={idMedico ?? ''}>Cargando…</option>}
+          {medicos?.length === 0 && <option value="">Sin médicos con agenda</option>}
+          {medicos?.map((m) => <option key={m.id} value={m.id}>{nombreProfesional(m)}</option>)}
+        </Selector>
       </div>
       {vista === 'dia' && (
         <div className="days">
@@ -212,10 +158,10 @@ export default function Citas() {
           })}
         </div>
       )}
-      {error && (
+      {mensajeError && (
         <div className="rc-alert rc-alert--danger" role="alert">
           <X strokeWidth={1.75} aria-hidden="true" />
-          <div className="rc-alert__body"><span className="rc-alert__title">No pudimos actualizar la agenda</span><span className="rc-alert__text">{error}</span></div>
+          <div className="rc-alert__body"><span className="rc-alert__title">No pudimos actualizar la agenda</span><span className="rc-alert__text">{mensajeError}</span></div>
         </div>
       )}
       <div className="split">
@@ -270,33 +216,7 @@ export default function Citas() {
           </div>
         </aside>
       </div>
-      {confirmar && (
-        <div className="rc-scrim" style={{ position: 'fixed', inset: 0 }} onKeyDown={(e) => e.key === 'Escape' && setConfirmar(null)}>
-          <div className="rc-modal" role="dialog" aria-modal="true" aria-labelledby="mc-titulo">
-            <div className="rc-modal__header">
-              <span className="rc-modal__icon"><CalendarX strokeWidth={1.75} aria-hidden="true" /></span>
-              <div style={{ flex: 1 }}>
-                <h2 className="rc-modal__title" id="mc-titulo">{confirmar.accion === 'CANCELADA' ? '¿Cancelar la cita?' : '¿Marcar inasistencia?'}</h2>
-              </div>
-              <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label="Cerrar" onClick={() => setConfirmar(null)}>
-                <X strokeWidth={1.75} aria-hidden="true" />
-              </button>
-            </div>
-            <div className="rc-modal__body" style={{ paddingLeft: '76px' }}>
-              <span>
-                La cita de {confirmar.cita.paciente.nombres} {confirmar.cita.paciente.apellidos} del {fechaSinAnio(confirmar.cita.fecha).toLowerCase()} a
-                las {confirmar.cita.hora} quedará como <strong>{confirmar.accion === 'CANCELADA' ? 'Cancelada' : 'No asistió'}</strong> y el horario quedará libre.
-              </span>
-            </div>
-            <div className="rc-modal__footer">
-              <button className="rc-btn rc-btn--ghost" autoFocus onClick={() => setConfirmar(null)}>Volver</button>
-              <button className="rc-btn rc-btn--danger" disabled={guardando} onClick={() => void ejecutar(confirmar.cita, confirmar.accion)}>
-                {confirmar.accion === 'CANCELADA' ? 'Cancelar cita' : 'Marcar inasistencia'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {acciones.dialogo}
     </div>
   );
 }

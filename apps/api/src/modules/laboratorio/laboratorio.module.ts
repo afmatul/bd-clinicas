@@ -33,7 +33,7 @@ import { LABORATORIO } from './laboratorio.tokens.js';
           examenes,
           pacientes: (ctx) => registro.para(ctx).pacientes,
           auditoria,
-          nombreUsuario: async (ctx) => (await identidad.obtenerPerfil(ctx.usuario.id)).usuario.nombre,
+          nombreUsuario: async (ctx) => (await identidad.obtenerPerfil(ctx.usuario.id, ctx.institucion.id)).usuario.nombre,
         });
       },
       inject: [CONEXIONES, REGISTRO, AUDITORIA, IDENTIDAD],

@@ -3,7 +3,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, ChevronDown, ChevronRight, Info, ShieldAlert, TriangleAlert, X } from 'lucide-react';
+import { ChevronRight, Info, ShieldAlert, TriangleAlert, X } from 'lucide-react';
+import { Selector } from '../componentes/Selector';
+import { SelectorFecha } from '../componentes/SelectorFecha';
 import type { CitaDetalle, PacienteFicha, PacienteResumen } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
 import { useToast } from '../layout/Toasts';
@@ -160,46 +162,34 @@ export default function NuevaCita() {
           <div className="grid2">
             <div className="rc-field">
               <label className="rc-label" htmlFor="nc2">Fecha <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className="rc-control">
-                <CalendarDays strokeWidth={1.75} aria-hidden="true" />
-                <input className="rc-input rc-num" id="nc2" type="date" min={hoy} value={fecha} required onChange={(e) => setFecha(e.target.value)} />
-              </div>
+              <SelectorFecha id="nc2" className="rc-num" min={hoy} value={fecha} required onChange={(f) => f && setFecha(f)} />
             </div>
             <div className="rc-field">
               <label className="rc-label" htmlFor="nc3">Hora <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input rc-num" id="nc3" value={hora} onChange={(e) => setHora(e.target.value)} disabled={!horas.length}>
-                  {!horas.length && <option value="">{libres[idMedico] ? 'Sin horarios libres' : 'Cargando…'}</option>}
-                  {horas.map((h) => <option key={h}>{h}</option>)}
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="nc3" className="rc-num" value={hora} onChange={setHora} disabled={!horas.length}>
+                {!horas.length && <option value="">{libres[idMedico] ? 'Sin horarios libres' : 'Cargando…'}</option>}
+                {horas.map((h) => <option key={h}>{h}</option>)}
+              </Selector>
               <div className="rc-help">Se muestran solo horarios libres.</div>
             </div>
             {esHospital && (
               <div className="rc-field">
                 <label className="rc-label" htmlFor="nc4">Especialidad</label>
-                <div className="rc-control rc-control--select">
-                  <select className="rc-input" id="nc4" value={idEspecialidad} onChange={(e) => setIdEspecialidad(e.target.value)}>
-                    <option value="">Todas las especialidades</option>
-                    {especialidades.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-                  </select>
-                  <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-                </div>
+                <Selector id="nc4" value={idEspecialidad} onChange={setIdEspecialidad}>
+                  <option value="">Todas las especialidades</option>
+                  {especialidades.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+                </Selector>
               </div>
             )}
             <div className="rc-field">
               <label className="rc-label" htmlFor="nc5">Médico <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input" id="nc5" value={idMedico} onChange={(e) => setIdMedico(e.target.value)}>
-                  {!medicos && <option value="">Cargando…</option>}
-                  {medicos && !visibles.length && <option value="">Sin médicos en esta especialidad</option>}
-                  {visibles.map((m) => (
-                    <option key={m.id} value={m.id}>{nombreProfesional(m)}{libres[m.id] ? ` · ${libres[m.id]!.length} libres` : ''}</option>
-                  ))}
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="nc5" value={idMedico} onChange={setIdMedico}>
+                {!medicos && <option value="">Cargando…</option>}
+                {medicos && !visibles.length && <option value="">Sin médicos en esta especialidad</option>}
+                {visibles.map((m) => (
+                  <option key={m.id} value={m.id}>{`${nombreProfesional(m)}${libres[m.id] ? ` · ${libres[m.id]!.length} libres` : ''}`}</option>
+                ))}
+              </Selector>
             </div>
           </div>
           <div className="rc-field">

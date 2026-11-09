@@ -23,11 +23,11 @@ export function ModalFormulario(props: {
 
   useEffect(() => {
     const previo = document.activeElement as HTMLElement | null;
-    ref.current?.querySelector<HTMLElement>('input, select, textarea')?.focus();
+    ref.current?.querySelector<HTMLElement>('input:not([type="hidden"]), select, textarea, button[aria-haspopup]')?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') cerrar.current();
       if (e.key !== 'Tab' || !ref.current) return;
-      const f = [...ref.current.querySelectorAll<HTMLElement>('button, input, select, textarea')].filter((x) => !x.hasAttribute('disabled'));
+      const f = [...ref.current.querySelectorAll<HTMLElement>('button, input:not([type="hidden"]), select, textarea')].filter((x) => !x.hasAttribute('disabled'));
       const [primero, ultimo] = [f[0], f[f.length - 1]];
       if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo?.focus(); }
       else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero?.focus(); }
@@ -69,7 +69,10 @@ export function ModalFormulario(props: {
 
 /** Campo del design system: etiqueta, control y ayuda o error con id `${id}-ayuda` (el input lo enlaza con aria-describedby). */
 export function Campo(props: {
-  id: string; etiqueta: string; opcional?: boolean; requerido?: boolean; ayuda?: string; error?: string; affix?: string; clase?: string; children: ReactNode;
+  id: string; etiqueta: string; opcional?: boolean; requerido?: boolean; ayuda?: string; error?: string; affix?: string; clase?: string;
+  /** El hijo ya dibuja su propio control (Selector, SelectorFecha): no se envuelve. */
+  sinControl?: boolean;
+  children: ReactNode;
 }) {
   const desc = props.error || props.ayuda ? `${props.id}-ayuda` : undefined;
   return (
@@ -79,10 +82,12 @@ export function Campo(props: {
         {props.requerido && <> <span className="rc-req" aria-hidden="true">*</span></>}
         {props.opcional && <> <span className="rc-opt">(opcional)</span></>}
       </label>
-      <div className={`rc-control${props.clase ? ` ${props.clase}` : ''}${props.error ? ' is-error' : ''}`}>
-        {props.children}
-        {props.affix && <span className="rc-affix">{props.affix}</span>}
-      </div>
+      {props.sinControl ? props.children : (
+        <div className={`rc-control${props.clase ? ` ${props.clase}` : ''}${props.error ? ' is-error' : ''}`}>
+          {props.children}
+          {props.affix && <span className="rc-affix">{props.affix}</span>}
+        </div>
+      )}
       {desc && <div className={`rc-help${props.error ? ' rc-help--error' : ''}`} id={desc}>{props.error ?? props.ayuda}</div>}
     </div>
   );

@@ -3,7 +3,9 @@
 // con los mismos componentes de la vista "pacientes" (PageHeader, Toolbar, Table, EmptyState, Modal).
 import { useCallback, useEffect, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { Building2, ChevronDown, IdCard, Search, Settings, Stethoscope, UserPlus } from 'lucide-react';
+import { Building2, IdCard, Settings, Stethoscope, UserPlus } from 'lucide-react';
+import { CampoBusqueda } from '../componentes/CampoBusqueda';
+import { Selector } from '../componentes/Selector';
 import type { Departamento, Especialidad, Profesional } from '@red-clinica/shared';
 import {
   asignarEspecialidad, departamentos as cargarDepartamentos, especialidades as cargarEspecialidades, listarPersonal,
@@ -192,19 +194,13 @@ export default function Personal() {
         </div>
       </header>
       <div className="rc-toolbar">
-        <form className="rc-control rc-control--sm grow" role="search"
-          onSubmit={(e) => { e.preventDefault(); cambiar({ q: String(new FormData(e.currentTarget).get('q') ?? '').trim() || undefined }); }}>
-          <Search strokeWidth={1.75} aria-hidden="true" />
-          <input className="rc-input" name="q" key={q} defaultValue={q} placeholder="Buscar por nombre o colegiado" aria-label="Buscar profesional" />
-        </form>
+        <CampoBusqueda valor={q} onBuscar={(t) => cambiar({ q: t || undefined })}
+          placeholder="Buscar por nombre o colegiado" etiqueta="Buscar profesional" />
         {catalogo.length > 1 && (
-          <div className="rc-control rc-control--select rc-control--sm">
-            <select className="rc-input" aria-label="Especialidad" value={especialidad} onChange={(e) => cambiar({ especialidad: e.target.value || undefined })}>
-              <option value="">Especialidad: todas</option>
-              {catalogo.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
-            </select>
-            <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-          </div>
+          <Selector pequeno aria-label="Especialidad" value={especialidad} onChange={(v) => cambiar({ especialidad: v || undefined })}>
+            <option value="">Especialidad: todas</option>
+            {catalogo.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}
+          </Selector>
         )}
         <button className="rc-btn rc-btn--ghost rc-btn--sm" disabled={!q && !especialidad} onClick={() => cambiar({ q: undefined, especialidad: undefined })}>
           Limpiar filtros

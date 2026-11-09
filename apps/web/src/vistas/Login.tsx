@@ -2,8 +2,7 @@
 
 import { useEffect, useState, type FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { Baby, ChevronDown, CircleAlert, FlaskConical, Hospital, Lock, Smile, User } from 'lucide-react';
-import { INSTITUCIONES, type InstitucionClave } from '@red-clinica/shared';
+import { Baby, CircleAlert, FlaskConical, Hospital, Lock, Smile, User } from 'lucide-react';
 import logo from '@red-clinica/design-system/logos/red-clinica-horizontal.svg';
 import { useSesion } from '../lib/sesion';
 import { ApiError } from '../api/cliente';
@@ -31,7 +30,7 @@ export default function Login() {
     setEnviando(true);
     setError(null);
     try {
-      await iniciarSesion({ username, password, institucion: f.get('institucion') as InstitucionClave });
+      await iniciarSesion({ username, password });
       try { if (f.get('recordar')) localStorage.setItem(RECORDAR, username); else localStorage.removeItem(RECORDAR); } catch { /* sin almacenamiento */ }
       router.replace('/');
     } catch (err) {
@@ -72,15 +71,6 @@ export default function Login() {
               <div className="rc-alert__body"><span className="rc-alert__text">{error}</span></div>
             </div>
           )}
-          <div className="rc-field">
-            <label className="rc-label" htmlFor="lg1">Institución <span className="rc-req" aria-hidden="true">*</span></label>
-            <div className="rc-control rc-control--select">
-              <select className="rc-input" id="lg1" name="institucion" defaultValue="hospital">
-                {Object.values(INSTITUCIONES).map((i) => <option key={i.clave} value={i.clave}>{i.nombre}</option>)}
-              </select>
-              <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-            </div>
-          </div>
           <div className="rc-field">
             <label className="rc-label" htmlFor="lg2">Usuario <span className="rc-req" aria-hidden="true">*</span></label>
             <div className={`rc-control${error ? ' is-error' : ''}`}>

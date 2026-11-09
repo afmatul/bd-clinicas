@@ -4,7 +4,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Check, ChevronDown, ChevronRight, Minus, Plus, ShieldAlert, Stethoscope, Trash2, TriangleAlert, X } from 'lucide-react';
+import { Check, ChevronRight, Minus, Plus, ShieldAlert, Stethoscope, Trash2, TriangleAlert, X } from 'lucide-react';
+import { Selector } from '../componentes/Selector';
 import type { AlertaAlergia, Alergia, CerrarConsultaInput, CitaDetalle, ConsultaDetalle, Medicamento, PacienteFicha, PacienteResumen, TipoDiagnostico } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
 import { useToast } from '../layout/Toasts';
@@ -373,14 +374,11 @@ function ConsultaEnCurso({ idPaciente, idCita }: { idPaciente: string; idCita: s
           <div className="grid2">
             <div className="rc-field">
               <label className="rc-label" htmlFor="dx1">Tipo <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input" id="dx1" value={f.dxTipo} onChange={(e) => set('dxTipo', e.target.value as TipoDiagnostico)}>
-                  <option value="DEFINITIVO">Definitivo</option>
-                  <option value="PRESUNTIVO">Presuntivo</option>
-                  <option value="DIFERENCIAL">Diferencial</option>
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="dx1" value={f.dxTipo} onChange={(v) => set('dxTipo', v as TipoDiagnostico)}>
+                <option value="DEFINITIVO">Definitivo</option>
+                <option value="PRESUNTIVO">Presuntivo</option>
+                <option value="DIFERENCIAL">Diferencial</option>
+              </Selector>
             </div>
             <div className="rc-field">
               <label className="rc-label" htmlFor="dx2">Diagnóstico final <span className="rc-req" aria-hidden="true">*</span></label>
@@ -408,12 +406,9 @@ function ConsultaEnCurso({ idPaciente, idCita }: { idPaciente: string; idCita: s
           <div className="grid2">
             <div className="rc-field">
               <label className="rc-label" htmlFor="tx1">Tipo de tratamiento</label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input" id="tx1" value={f.txTipo} onChange={(e) => set('txTipo', e.target.value)}>
-                  {TIPOS_TX.map((t) => <option key={t}>{t}</option>)}
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="tx1" value={f.txTipo} onChange={(v) => set('txTipo', v)}>
+                {TIPOS_TX.map((t) => <option key={t}>{t}</option>)}
+              </Selector>
             </div>
             <div className="rc-field">
               <label className="rc-label" htmlFor="tx2">Descripción</label>
@@ -488,12 +483,9 @@ function ConsultaEnCurso({ idPaciente, idCita }: { idPaciente: string; idCita: s
                       </div>
                     </td>
                     <td>
-                      <div className="rc-control rc-control--select rc-control--sm">
-                        <select className="rc-input" value={r.via} aria-label={`Vía de ${r.med.nombre}`} onChange={(e) => setRenglon(i, { via: e.target.value })}>
-                          {VIAS.map((v) => <option key={v}>{v}</option>)}
-                        </select>
-                        <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-                      </div>
+                      <Selector pequeno value={r.via} aria-label={`Vía de ${r.med.nombre}`} onChange={(v) => setRenglon(i, { via: v })}>
+                        {VIAS.map((v) => <option key={v}>{v}</option>)}
+                      </Selector>
                     </td>
                     <td><Stepper valor={r.frecuencia} min={1} max={168} etiqueta="Frecuencia en horas" onChange={(v) => setRenglon(i, { frecuencia: v })} /></td>
                     <td><Stepper valor={r.duracion} min={1} max={365} etiqueta="Duración en días" onChange={(v) => setRenglon(i, { duracion: v })} /></td>

@@ -19,7 +19,7 @@ export function crearCasosDeUsoPrescripcion(deps: { registro: RegistroDeAdaptado
     },
 
     async recetas(ctx: ContextoInstitucion, idPaciente: string, soloVigentes: boolean) {
-      exigirRol(ctx, ['MEDICO', 'ENFERMERIA']);
+      exigirRol(ctx, ['MEDICO', 'ENFERMERIA', 'RECEPCION']); // recepción informa las recetas al paciente
       const todas = await repos(ctx).recetas.delPaciente(idPaciente);
       await deps.auditoria.registrar(ctx, 'LEER', { entidad: 'receta', idPaciente });
       const hoy = ahoraLocal().fecha;

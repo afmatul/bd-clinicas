@@ -6,6 +6,17 @@ const QUITAR_ACENTO: Record<string, string> = {
   ó: 'o', ò: 'o', ö: 'o', ô: 'o', ú: 'u', ù: 'u', ü: 'u', û: 'u', ñ: 'n',
 };
 
+/** Palabras de una búsqueda ("maría  lópez" → ["maría", "lópez"]). Todas deben aparecer, en cualquier orden. */
+export function palabrasDeBusqueda(texto: string): string[] {
+  return texto.trim().split(/\s+/).filter(Boolean);
+}
+
+/** Dígitos de un CUI escrito completo o a medias, con o sin espacios ("2547 88"); null si no es numérico. */
+export function digitosDeCui(texto: string): string | null {
+  const limpio = texto.replace(/[\s-]/g, '');
+  return /^\d+$/.test(limpio) ? limpio : null;
+}
+
 /**
  * Patrón de expresión regular que ignora mayúsculas y acentos ("lopez" encuentra "López").
  * Sirve igual en PostgreSQL (~*), MongoDB ($regex) y CouchDB ($regex), para que la búsqueda

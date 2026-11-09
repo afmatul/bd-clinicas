@@ -68,7 +68,7 @@ npm run dev:api               # http://localhost:3000
 npm run dev:web               # http://localhost:5173 (Next.js; /api se redirige a la API)
 ```
 
-Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción), entre otros. `npm run db:seed` vuelve a cargar sobre las bases ya levantadas. Qué datos se cargan, la lista completa de usuarios y la forma de los documentos de Mongo y Couch están en [`apps/api/src/scripts/semilla/README.md`](apps/api/src/scripts/semilla/README.md).
+Usuarios de desarrollo (contraseña `RedClinica2026!`): `aperez` (hospital, médico), `recepcion.hg` (hospital, recepción), `pediatra` (pediátrico), `laboratorio` (laboratorio), `secretaria` (odontológica, recepción), `admin` (administrador: entra al hospital y cambia de institución desde el selector del sidebar), entre otros. El login ya no pide institución: cada usuario pertenece a una. `npm run db:seed` vuelve a cargar sobre las bases ya levantadas. Qué datos se cargan, la lista completa de usuarios y la forma de los documentos de Mongo y Couch están en [`apps/api/src/scripts/semilla/README.md`](apps/api/src/scripts/semilla/README.md).
 
 Para revisar el diseño sin bases de datos: `NEXT_PUBLIC_DEMO=true npm run dev:web` (cualquier usuario y contraseña; el selector de institución funciona como en el prototipo).
 

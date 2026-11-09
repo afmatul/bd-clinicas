@@ -13,7 +13,8 @@ export const viewport: Viewport = { width: 'device-width', initialScale: 1, view
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="es-GT">
+    // Tema claro por defecto; AppShell aplica la preferencia guardada del usuario si la hay.
+    <html lang="es-GT" data-theme="light" suppressHydrationWarning>
       <head>
         {/* Fuentes del design system (Manrope + Public Sans), las mismas que importa components.css. */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

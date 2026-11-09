@@ -1,7 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from 'react';
-import type { InstitucionClave, LoginInput, Perfil } from '@red-clinica/shared';
+import type { ActualizarPerfilInput, InstitucionClave, LoginInput, Perfil } from '@red-clinica/shared';
 import { api, ApiError } from '../api/cliente';
 import { MODO_DEMO, perfilDemo } from '../datos/demo';
 
@@ -10,8 +10,9 @@ interface Sesion {
   cargando: boolean;
   iniciarSesion(input: LoginInput): Promise<void>;
   cerrarSesion(): Promise<void>;
-  /** Solo en modo demo: cambia de institución como el selector del prototipo. */
-  cambiarInstitucionDemo?(clave: InstitucionClave): void;
+  actualizarPerfil(input: ActualizarPerfilInput): Promise<void>;
+  /** Solo ADMIN (o modo demo): pasa la sesión a otra institución. */
+  cambiarInstitucion(clave: InstitucionClave): Promise<void>;
 }
 
 const Ctx = createContext<Sesion | null>(null);
@@ -29,7 +30,7 @@ export function SesionProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const iniciarSesion = useCallback(async (input: LoginInput) => {
-    if (MODO_DEMO) return setPerfil(perfilDemo(input.institucion));
+    if (MODO_DEMO) return setPerfil(perfilDemo());
     setPerfil(await api<Perfil>('/auth/login', { method: 'POST', body: input }));
   }, []);
 
@@ -38,9 +39,17 @@ export function SesionProvider({ children }: { children: ReactNode }) {
     setPerfil(null);
   }, []);
 
-  const cambiarInstitucionDemo = MODO_DEMO ? (clave: InstitucionClave) => setPerfil(perfilDemo(clave)) : undefined;
+  const actualizarPerfil = useCallback(async (input: ActualizarPerfilInput) => {
+    if (MODO_DEMO) return setPerfil((p) => (p && input.nombre ? { ...p, usuario: { ...p.usuario, nombre: input.nombre } } : p));
+    setPerfil(await api<Perfil>('/auth/perfil', { method: 'PATCH', body: input }));
+  }, []);
 
-  return <Ctx.Provider value={{ perfil, cargando, iniciarSesion, cerrarSesion, cambiarInstitucionDemo }}>{children}</Ctx.Provider>;
+  const cambiarInstitucion = useCallback(async (clave: InstitucionClave) => {
+    if (MODO_DEMO) return setPerfil(perfilDemo(clave));
+    setPerfil(await api<Perfil>('/auth/institucion', { method: 'POST', body: { institucion: clave } }));
+  }, []);
+
+  return <Ctx.Provider value={{ perfil, cargando, iniciarSesion, cerrarSesion, actualizarPerfil, cambiarInstitucion }}>{children}</Ctx.Provider>;
 }
 
 export function useSesion(): Sesion {

@@ -14,7 +14,7 @@ import type { PacienteRepository } from '../../pacientes/ports/paciente-reposito
 import { construirResultados, seccionesDe, validarCaptura, validarValidacion } from '../domain/examen.js';
 import type { ExamenDatos, ExamenRepository, Firma } from '../ports/examen-repository.js';
 
-const LEER = ['MEDICO', 'ENFERMERIA'] as const;
+const LEER = ['MEDICO', 'ENFERMERIA', 'RECEPCION'] as const; // recepción informa resultados al paciente
 const ORDENAR = ['MEDICO', 'ENFERMERIA', 'RECEPCION'] as const;
 const CAPTURAR = ['MEDICO'] as const; // químico biólogo del laboratorio
 

@@ -36,6 +36,12 @@ export class UsuarioRepositoryPlataforma implements UsuarioRepository {
       Number(id), intentos, bloqueadoHasta,
     ]);
   }
+  async actualizarDatos(id: string, c: { nombre?: string; passwordHash?: string }) {
+    await this.db.query(
+      `UPDATE usuario SET nombre = COALESCE($2, nombre), password_hash = COALESCE($3, password_hash) WHERE id_usuario = $1`,
+      [Number(id), c.nombre ?? null, c.passwordHash ?? null],
+    );
+  }
   async registrarAcceso(id: string) {
     await this.db.query(
       `UPDATE usuario SET intentos_fallidos = 0, bloqueado_hasta = NULL, ultimo_acceso = now() WHERE id_usuario = $1`,

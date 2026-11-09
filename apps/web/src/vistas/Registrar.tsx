@@ -4,7 +4,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, ChevronDown, ChevronRight, Mail, Phone, Plus, ShieldAlert, X } from 'lucide-react';
+import { ChevronRight, Mail, Phone, Plus, ShieldAlert, X } from 'lucide-react';
+import { Selector } from '../componentes/Selector';
+import { SelectorFecha } from '../componentes/SelectorFecha';
 import type { RegistrarAlergiaInput, RegistrarAntecedenteInput, RegistrarPacienteInput } from '@red-clinica/shared';
 import { ApiError } from '../api/cliente';
 import { registrarPaciente } from '../api/pacientes';
@@ -12,7 +14,7 @@ import { registrarAlergia, registrarAntecedente } from '../api/antecedentes';
 import { useSesion } from '../lib/sesion';
 import { useToast } from '../layout/Toasts';
 import { ModalCuadroClinico, type Registro } from '../componentes/ModalCuadroClinico';
-import { edad, formatoSangre } from '../datos/formato';
+import { ahoraLocal, edad, formatoSangre } from '../datos/formato';
 
 const SANGRE = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 const COMUNES = ['Hipertensión', 'Diabetes', 'Asma', 'Cardiopatía', 'Cirugías previas', 'Tabaquismo'];
@@ -139,34 +141,25 @@ export default function Registrar() {
             {campo('rp3', 'cui', 'CUI', { req: !pediatrico, num: true, ph: '2547 88120 0101', ayuda: pediatrico ? 'Si el menor aún no tiene CUI, déjelo vacío.' : undefined })}
             <div className="rc-field">
               <label className="rc-label" htmlFor="rp4">Fecha de nacimiento <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className={`rc-control${errores.fechaNacimiento ? ' is-error' : ''}`}>
-                <CalendarDays strokeWidth={1.75} aria-hidden="true" />
-                <input className="rc-input" id="rp4" name="nacimiento" type="date" value={nacimiento} max={new Date().toISOString().slice(0, 10)}
-                  onChange={(e) => setNacimiento(e.target.value)} />
-              </div>
+              <SelectorFecha id="rp4" name="nacimiento" value={nacimiento} max={ahoraLocal().fecha} invalido={!!errores.fechaNacimiento}
+                onChange={setNacimiento} />
               <Ayuda error={errores.fechaNacimiento}>{nacimiento ? `Edad calculada: ${edad(nacimiento)} años.` : undefined}</Ayuda>
             </div>
           </div>
           <div className="grid3">
             <div className="rc-field">
               <label className="rc-label" htmlFor="rp5">Sexo <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input" id="rp5" name="sexo">
-                  <option value="F">Femenino</option>
-                  <option value="M">Masculino</option>
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="rp5" name="sexo">
+                <option value="F">Femenino</option>
+                <option value="M">Masculino</option>
+              </Selector>
             </div>
             <div className="rc-field">
               <label className="rc-label" htmlFor="rp6">Tipo de sangre</label>
-              <div className="rc-control rc-control--select">
-                <select className="rc-input" id="rp6" name="sangre" defaultValue="">
-                  <option value="">Sin dato</option>
-                  {SANGRE.map((s) => <option key={s} value={s}>{formatoSangre(s)}</option>)}
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="rp6" name="sangre" defaultValue="">
+                <option value="">Sin dato</option>
+                {SANGRE.map((s) => <option key={s} value={s}>{formatoSangre(s)}</option>)}
+              </Selector>
             </div>
             {campo('rp7', 'procedencia', 'Procedencia', { ph: 'Mixco' })}
           </div>
@@ -198,17 +191,14 @@ export default function Registrar() {
               {campo('rp11', 'resp_nombre', 'Nombre completo', { req: true })}
               <div className="rc-field">
                 <label className="rc-label" htmlFor="rp12">Parentesco <span className="rc-req" aria-hidden="true">*</span></label>
-                <div className="rc-control rc-control--select">
-                  <select className="rc-input" id="rp12" name="resp_parentesco">
-                    <option>Madre</option>
-                    <option>Padre</option>
-                    <option>Abuela</option>
-                    <option>Abuelo</option>
-                    <option>Tutor legal</option>
-                    <option>Otro</option>
-                  </select>
-                  <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-                </div>
+                <Selector id="rp12" name="resp_parentesco">
+                  <option>Madre</option>
+                  <option>Padre</option>
+                  <option>Abuela</option>
+                  <option>Abuelo</option>
+                  <option>Tutor legal</option>
+                  <option>Otro</option>
+                </Selector>
               </div>
               {campo('rp13', 'resp_telefono', 'Teléfono', { req: true, icono: <Phone strokeWidth={1.75} aria-hidden="true" /> })}
             </div>

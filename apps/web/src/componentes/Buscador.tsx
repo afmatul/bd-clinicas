@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Search } from 'lucide-react';
+import { PAUSA_BUSQUEDA_MS } from './CampoBusqueda';
 
 /**
  * Campo de búsqueda con lista desplegable (rc-control + rc-menu + rc-option del design system).
@@ -33,7 +34,7 @@ export function Buscador<T>({
     let vigente = true;
     const t = setTimeout(() => {
       buscar(q.trim()).then((r) => { if (vigente) { setItems(r); setActivo(0); } }).catch(() => vigente && setItems([]));
-    }, 250);
+    }, PAUSA_BUSQUEDA_MS);
     return () => { vigente = false; clearTimeout(t); };
   }, [q, abierto, buscar, buscarVacio]);
 

@@ -6,8 +6,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
-  Activity, CalendarDays, ChevronRight, ClipboardList, Droplet, Eye, FlaskConical, HeartPulse, History,
-  Loader2, Pill, Plus, ShieldAlert, Stethoscope, Thermometer, TriangleAlert, Users, Weight, Wind,
+  CalendarDays, ChevronRight, ClipboardList, Eye, FlaskConical, Pill, Plus, ShieldAlert, Stethoscope, TriangleAlert, Users,
 } from 'lucide-react';
 import type { AccesoPaciente, Alergia, PacienteFicha, Severidad } from '@red-clinica/shared';
 import { obtenerPaciente } from '../api/pacientes';
@@ -16,6 +15,7 @@ import { accesosAPaciente } from '../api/auditoria';
 import { useSesion } from '../lib/sesion';
 import { useToast } from '../layout/Toasts';
 import { ModalCuadroClinico, type Registro } from '../componentes/ModalCuadroClinico';
+import { ListaRecetas, PanelCitas, PanelLaboratorio, PerfilSocial, TablaConsultas, useExpediente, type Expediente, type Visibilidad } from './paciente/expediente';
 import {
   NOMBRE_ROL, edad, formatoCui, formatoFecha, formatoFechaHora, formatoSangre, formatoTelefono, iniciales, inicialesDeNombre, varianteAvatar,
 } from '../datos/formato';
@@ -23,6 +23,26 @@ import {
 const SEXO: Record<string, string> = { F: 'Femenino', M: 'Masculino' };
 const SEVERIDAD: Record<Severidad, string> = { LEVE: 'leve', MODERADA: 'moderada', SEVERA: 'severa' };
 const TAG_SEVERIDAD: Record<Severidad, string> = { LEVE: 'rc-tag--info', MODERADA: 'rc-tag--warning', SEVERA: 'rc-tag--danger' };
+
+type Pestana = 'resumen' | 'consultas' | 'citas' | 'recetas' | 'laboratorio' | 'social';
+
+// Roles por sección; igual que la API (ADMIN siempre pasa en `exigirRol`).
+const ROLES_CONSULTAS = ['MEDICO', 'ENFERMERIA', 'ADMIN'];
+/** Recepción ve recetas y resultados de laboratorio para informarlos al paciente. */
+const ROLES_RECETAS_LAB = ['MEDICO', 'ENFERMERIA', 'RECEPCION', 'ADMIN'];
+const ROLES_CITAS = ['RECEPCION', 'MEDICO', 'ENFERMERIA', 'TRABAJO_SOCIAL', 'ADMIN'];
+
+type Area = keyof Visibilidad | 'todos';
+
+/** Laboratorio solo aparece en instituciones con ese módulo; lo clínico solo para los roles que lo pueden leer. */
+const PESTANAS: { clave: Pestana; etiqueta: string; Icono: typeof Stethoscope; area: Area; n: (e: Expediente) => number | null }[] = [
+  { clave: 'resumen', etiqueta: 'Resumen', Icono: ClipboardList, area: 'todos', n: () => null },
+  { clave: 'consultas', etiqueta: 'Consultas', Icono: Stethoscope, area: 'consultas', n: (e) => e.consultas.datos?.length ?? null },
+  { clave: 'citas', etiqueta: 'Citas', Icono: CalendarDays, area: 'citas', n: (e) => e.citas.datos?.length ?? null },
+  { clave: 'recetas', etiqueta: 'Recetas', Icono: Pill, area: 'recetas', n: (e) => e.recetas.datos?.length ?? null },
+  { clave: 'laboratorio', etiqueta: 'Laboratorio', Icono: FlaskConical, area: 'laboratorio', n: (e) => e.examenes.datos?.length ?? null },
+  { clave: 'social', etiqueta: 'Perfil social', Icono: Users, area: 'todos', n: () => null },
+];
 
 function TagAlergia({ a }: { a: Alergia }) {
   const sev = a.severidad ?? 'LEVE';
@@ -93,6 +113,16 @@ export default function Paciente({ id }: { id: string }) {
   const [error, setError] = useState<string | null>(null);
   const [modal, setModal] = useState<Registro | null>(null);
   const [version, setVersion] = useState(0);
+  const [pestana, setPestana] = useState<Pestana>('resumen');
+  const conLaboratorio = perfil?.institucion.clave === 'laboratorio';
+  const rolSesion = perfil?.usuario.rol;
+  const ver: Visibilidad = {
+    consultas: rolSesion !== undefined && ROLES_CONSULTAS.includes(rolSesion),
+    recetas: rolSesion !== undefined && ROLES_RECETAS_LAB.includes(rolSesion),
+    laboratorio: rolSesion !== undefined && ROLES_RECETAS_LAB.includes(rolSesion),
+    citas: rolSesion !== undefined && ROLES_CITAS.includes(rolSesion),
+  };
+  const exp = useExpediente(id, conLaboratorio, ver);
 
   const cargar = useCallback(() => {
     obtenerPaciente(id).then(setP).catch((e: Error) => setError(e.message));
@@ -159,182 +189,46 @@ export default function Paciente({ id }: { id: string }) {
       )}
       <AlertaAlergias alergias={p.alergias} />
       <div className="rc-tabs" role="tablist">
-        <button className="rc-tab" role="tab" aria-selected="true">
-          <ClipboardList strokeWidth={1.75} aria-hidden="true" />
-          Resumen
-        </button>
-        <button className="rc-tab" role="tab">
-          <Stethoscope strokeWidth={1.75} aria-hidden="true" />
-          Consultas
-          <span className="rc-badge rc-badge--soft">12</span>
-        </button>
-        <button className="rc-tab" role="tab">
-          <CalendarDays strokeWidth={1.75} aria-hidden="true" />
-          Citas
-          <span className="rc-badge rc-badge--soft">1</span>
-        </button>
-        <button className="rc-tab" role="tab">
-          <Pill strokeWidth={1.75} aria-hidden="true" />
-          Recetas
-        </button>
-        <button className="rc-tab" role="tab">
-          <FlaskConical strokeWidth={1.75} aria-hidden="true" />
-          Laboratorio
-          <span className="rc-badge">1</span>
-        </button>
-        <button className="rc-tab" role="tab">
-          <Users strokeWidth={1.75} aria-hidden="true" />
-          Perfil social
-        </button>
+        {PESTANAS.filter((t) => (t.clave !== 'laboratorio' || conLaboratorio) && (t.area === 'todos' || ver[t.area])).map(({ clave, etiqueta, Icono, n }) => (
+          <button key={clave} className="rc-tab" role="tab" aria-selected={pestana === clave} onClick={() => setPestana(clave)}>
+            <Icono strokeWidth={1.75} aria-hidden="true" />
+            {etiqueta}
+            {n(exp) !== null && <span className="rc-badge rc-badge--soft">{n(exp)}</span>}
+          </button>
+        ))}
       </div>
       <div className="split">
         <div className="col">
-          <section className="rc-card">
-            <div className="rc-card__header">
-              <div>
-                <h2 className="rc-card__title">Signos vitales</h2>
-                <p className="rc-card__sub">Última toma: 04/11/2026 · 08:12 · Enf. Marta Cifuentes</p>
-              </div>
-              <button className="rc-btn rc-btn--ghost rc-btn--sm">
-                <History strokeWidth={1.75} aria-hidden="true" />
-                Historial
-              </button>
-            </div>
-            <div className="vitals">
-              <div className="vital">
-                <span className="vital__l">
-                  <HeartPulse strokeWidth={1.75} aria-hidden="true" />
-                  Presión arterial
-                </span>
-                <span className="vital__v rc-num">132/84<small>mmHg</small></span>
-                <span className="rc-pill rc-pill--warning">
-                  <TriangleAlert strokeWidth={1.75} aria-hidden="true" />
-                  Elevada
-                </span>
-              </div>
-              <div className="vital">
-                <span className="vital__l">
-                  <Activity strokeWidth={1.75} aria-hidden="true" />
-                  Frec. cardiaca
-                </span>
-                <span className="vital__v rc-num">78<small>lpm</small></span>
-              </div>
-              <div className="vital">
-                <span className="vital__l">
-                  <Thermometer strokeWidth={1.75} aria-hidden="true" />
-                  Temperatura
-                </span>
-                <span className="vital__v rc-num">36.7<small>°C</small></span>
-              </div>
-              <div className="vital">
-                <span className="vital__l">
-                  <Droplet strokeWidth={1.75} aria-hidden="true" />
-                  Saturación O₂
-                </span>
-                <span className="vital__v rc-num">97<small>%</small></span>
-              </div>
-              <div className="vital">
-                <span className="vital__l">
-                  <Wind strokeWidth={1.75} aria-hidden="true" />
-                  Frec. respiratoria
-                </span>
-                <span className="vital__v rc-num">16<small>rpm</small></span>
-              </div>
-              <div className="vital">
-                <span className="vital__l">
-                  <Weight strokeWidth={1.75} aria-hidden="true" />
-                  Peso · talla
-                </span>
-                <span className="vital__v rc-num">61.4 · 158<small>kg · cm</small></span>
-                <span className="vital__n">IMC 24.6</span>
-              </div>
-            </div>
-          </section>
-          <section className="rc-card" style={{ padding: 0, gap: 0 }}>
-            <div className="card-h">
-              <h2 className="rc-card__title">Consultas recientes</h2>
-              <Link className="rc-link" href="/paciente">Ver las 12</Link>
-            </div>
-            <div className="rc-table-wrap flat">
-              <table className="rc-table">
-                <thead>
-                  <tr>
-                    <th>Fecha</th>
-                    <th>Motivo</th>
-                    <th className="hide-sm">Diagnóstico</th>
-                    <th className="hide-sm">Médico</th>
-                    <th className="rc-cell-actions"><span className="rc-sr">Abrir</span></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="rc-num">04/11/2026</td>
-                    <td>Control de hipertensión</td>
-                    <td className="hide-sm">Hipertensión arterial esencial (I10)</td>
-                    <td className="hide-sm">Dra. Ana Lucía Pérez</td>
-                    <td className="rc-cell-actions">
-                      <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label="Abrir consulta">
-                        <ChevronRight strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="rc-num">12/08/2026</td>
-                    <td>Cefalea frecuente</td>
-                    <td className="hide-sm">Cefalea tensional (G44.2)</td>
-                    <td className="hide-sm">Dr. Carlos Méndez</td>
-                    <td className="rc-cell-actions">
-                      <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label="Abrir consulta">
-                        <ChevronRight strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="rc-num">03/05/2026</td>
-                    <td>Chequeo general</td>
-                    <td className="hide-sm">Sin hallazgos</td>
-                    <td className="hide-sm">Dra. Ana Lucía Pérez</td>
-                    <td className="rc-cell-actions">
-                      <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label="Abrir consulta">
-                        <ChevronRight strokeWidth={1.75} aria-hidden="true" />
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-          <section className="rc-card">
-            <div className="rc-card__header">
-              <h2 className="rc-card__title">Tratamiento activo</h2>
-              <span className="rc-pill rc-pill--info">
-                <Loader2 strokeWidth={1.75} aria-hidden="true" />
-                En curso
-              </span>
-            </div>
-            <div className="rx">
-              <span className="rx__icon">
-                <Pill strokeWidth={1.75} aria-hidden="true" />
-              </span>
-              <div>
-                <b>Losartán 50 mg</b>
-                · tableta · oral
-                <div className="muted">1 tableta cada 24 horas · 90 días · desde 04/11/2026</div>
-              </div>
-              <span className="rc-tag rc-num">90 u</span>
-            </div>
-            <div className="rx">
-              <span className="rx__icon">
-                <Pill strokeWidth={1.75} aria-hidden="true" />
-              </span>
-              <div>
-                <b>Hidroclorotiazida 12.5 mg</b>
-                · tableta · oral
-                <div className="muted">1 tableta cada 24 horas por la mañana · 90 días</div>
-              </div>
-              <span className="rc-tag rc-num">90 u</span>
-            </div>
-          </section>
+          {pestana === 'resumen' && (
+            <>
+              {ver.consultas && (
+                <section className="rc-card" style={{ padding: 0, gap: 0 }}>
+                  <div className="card-h">
+                    <h2 className="rc-card__title">Consultas recientes</h2>
+                    <button className="rc-link" onClick={() => setPestana('consultas')}>Ver todas</button>
+                  </div>
+                  <TablaConsultas c={exp.consultas} limite={3} />
+                </section>
+              )}
+              {ver.recetas && (
+                <section className="rc-card">
+                  <div className="rc-card__header"><h2 className="rc-card__title">Recetas recientes</h2></div>
+                  <ListaRecetas c={{ ...exp.recetas, datos: exp.recetas.datos?.slice(0, 1) ?? null }} />
+                </section>
+              )}
+              {!ver.consultas && ver.citas && (
+                <section className="rc-card" style={{ padding: 0, gap: 0 }}>
+                  <div className="card-h"><h2 className="rc-card__title">Próximas citas</h2></div>
+                  <PanelCitas c={exp.citas} />
+                </section>
+              )}
+            </>
+          )}
+          {pestana === 'consultas' && <section className="rc-card" style={{ padding: 0, gap: 0 }}><div className="card-h"><h2 className="rc-card__title">Consultas</h2></div><TablaConsultas c={exp.consultas} /></section>}
+          {pestana === 'citas' && <section className="rc-card" style={{ padding: 0, gap: 0 }}><div className="card-h"><h2 className="rc-card__title">Citas</h2></div><PanelCitas c={exp.citas} /></section>}
+          {pestana === 'recetas' && <ListaRecetas c={exp.recetas} />}
+          {pestana === 'laboratorio' && conLaboratorio && <section className="rc-card" style={{ padding: 0, gap: 0 }}><div className="card-h"><h2 className="rc-card__title">Laboratorio</h2></div><PanelLaboratorio c={exp.examenes} /></section>}
+          {pestana === 'social' && <PerfilSocial p={p} />}
         </div>
         <aside className="col">
           <section className="rc-card">

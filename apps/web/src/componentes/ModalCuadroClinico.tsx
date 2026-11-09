@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { ChevronDown, ClipboardList, ShieldAlert } from 'lucide-react';
+import { ClipboardList, ShieldAlert } from 'lucide-react';
+import { Selector } from './Selector';
 import type { RegistrarAlergiaInput, RegistrarAntecedenteInput, Severidad } from '@red-clinica/shared';
 import { ApiError } from '../api/cliente';
 import { Modal } from '../layout/Modal';
@@ -70,14 +71,11 @@ export function ModalCuadroClinico({ inicial, enviar, onCerrar, onGuardado }: {
         {tipo === 'alergia' && (
           <div className="rc-field">
             <label className="rc-label" htmlFor="cc-sev">Severidad <span className="rc-req" aria-hidden="true">*</span></label>
-            <div className="rc-control rc-control--select">
-              <select className="rc-input" id="cc-sev" name="severidad" defaultValue="MODERADA">
-                <option value="LEVE">Leve</option>
-                <option value="MODERADA">Moderada</option>
-                <option value="SEVERA">Severa</option>
-              </select>
-              <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-            </div>
+            <Selector id="cc-sev" name="severidad" defaultValue="MODERADA">
+              <option value="LEVE">Leve</option>
+              <option value="MODERADA">Moderada</option>
+              <option value="SEVERA">Severa</option>
+            </Selector>
           </div>
         )}
         <div className="rc-field">

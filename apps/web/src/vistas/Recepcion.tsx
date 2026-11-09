@@ -1,7 +1,8 @@
 'use client';
 // Vista "recepcion" del prototipo (solo Clínica odontológica · CouchDB), conectada a /api/odontologia/recepcion.
 import { useCallback, useEffect, useMemo, useState, type FormEvent, type ReactNode } from 'react';
-import { Check, ChevronDown, CircleCheck, Phone, Search, UserPlus } from 'lucide-react';
+import { Check, CircleCheck, Phone, Search, UserPlus } from 'lucide-react';
+import { Selector } from '../componentes/Selector';
 import { MOTIVOS_RECEPCION, type RecepcionDelDia, type Turno } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
 import { useToast } from '../layout/Toasts';
@@ -273,13 +274,11 @@ export default function Recepcion() {
             </div>
             <div className="rc-field">
               <label className="rc-label" htmlFor="rr4">Motivo <span className="rc-req" aria-hidden="true">*</span></label>
-              <div className={`rc-control rc-control--select${errores.motivo ? ' is-error' : ''}`}>
-                <select className="rc-input" id="rr4" required aria-invalid={!!errores.motivo} {...campo('motivo')}>
-                  <option value="">Seleccione una opción</option>
-                  {MOTIVOS_RECEPCION.map((m) => <option key={m} value={m}>{m}</option>)}
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector id="rr4" invalido={!!errores.motivo} value={form.motivo as string}
+                onChange={(v) => setForm((f) => ({ ...f, motivo: v }))}>
+                <option value="">Seleccione una opción</option>
+                {MOTIVOS_RECEPCION.map((m) => <option key={m} value={m}>{m}</option>)}
+              </Selector>
               {ayudaError('motivo')}
             </div>
             <label className={`rc-check${libre ? '' : ' is-disabled'}`}>

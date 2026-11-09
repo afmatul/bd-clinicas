@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { ChevronDown, Ruler, Syringe } from 'lucide-react';
+import { Ruler, Syringe } from 'lucide-react';
+import { Selector } from '../../componentes/Selector';
+import { SelectorFecha } from '../../componentes/SelectorFecha';
 import type { VacunaEnCarne } from '@red-clinica/shared';
 import { ApiError } from '../../api/cliente';
 import { aplicarDosis, registrarMedicion } from '../../api/pediatria';
@@ -48,9 +50,9 @@ export function FormularioMedicion({ idPaciente, nacimiento, onCerrar, onGuardad
     <ModalFormulario titulo="Nueva medición" icono={<Ruler strokeWidth={1.75} aria-hidden="true" />} enviando={enviando}
       textoEnviar="Guardar medición" error={error} onCerrar={onCerrar}
       onEnviar={(e) => { e.preventDefault(); const d = datos(e); void enviar(() => registrarMedicion(idPaciente, d as never)); }}>
-      <Campo id="fecha" etiqueta="Fecha de la medición" requerido error={campos.fecha}>
-        <input className="rc-input rc-num" id="fecha" name="fecha" type="date" max={hoyISO()} min={nacimiento} required
-          value={fecha} onChange={(e) => setFecha(e.target.value)} {...ayuda('fecha', campos)} />
+      <Campo id="fecha" etiqueta="Fecha de la medición" requerido sinControl error={campos.fecha}>
+        <SelectorFecha className="rc-num" id="fecha" name="fecha" max={hoyISO()} min={nacimiento} required
+          value={fecha} onChange={setFecha} invalido={!!campos.fecha} aria-describedby={campos.fecha ? 'fecha-ayuda' : undefined} />
       </Campo>
       <div className="grid3">
         <Campo id="pesoKg" etiqueta="Peso" requerido affix="kg" error={campos.pesoKg}>
@@ -103,11 +105,10 @@ export function FormularioDosis({ idPaciente, carne, idVacunaInicial, onCerrar, 
         void enviar(() => aplicarDosis(idPaciente, { ...d, idVacuna: vacuna.id, numeroDosis: vacuna.siguienteDosis! } as never));
       }}>
       <div className="grid2">
-        <Campo id="idVacuna" etiqueta="Vacuna" requerido clase="rc-control--select" error={campos.idVacuna}>
-          <select className="rc-input" id="idVacuna" value={idVacuna} onChange={(e) => setIdVacuna(e.target.value)}>
+        <Campo id="idVacuna" etiqueta="Vacuna" requerido sinControl error={campos.idVacuna}>
+          <Selector id="idVacuna" value={idVacuna} onChange={setIdVacuna} invalido={!!campos.idVacuna}>
             {disponibles.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
-          </select>
-          <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
+          </Selector>
         </Campo>
         <Campo id="numeroDosis" etiqueta="Dosis" clase="is-readonly" error={campos.numeroDosis}
           ayuda={vacuna?.proximaFecha ? `Programada para el ${formatoFecha(vacuna.proximaFecha)}.` : undefined}>
@@ -116,18 +117,19 @@ export function FormularioDosis({ idPaciente, carne, idVacunaInicial, onCerrar, 
         </Campo>
       </div>
       <div className="grid2">
-        <Campo id="fechaAplicacion" etiqueta="Fecha de aplicación" requerido error={campos.fechaAplicacion}>
-          <input className="rc-input rc-num" id="fechaAplicacion" name="fechaAplicacion" type="date" max={hoyISO()} defaultValue={hoyISO()} required {...ayuda('fechaAplicacion', campos)} />
+        <Campo id="fechaAplicacion" etiqueta="Fecha de aplicación" requerido sinControl error={campos.fechaAplicacion}>
+          <SelectorFecha className="rc-num" id="fechaAplicacion" name="fechaAplicacion" max={hoyISO()} defaultValue={hoyISO()} required
+            invalido={!!campos.fechaAplicacion} aria-describedby={campos.fechaAplicacion ? 'fechaAplicacion-ayuda' : undefined} />
         </Campo>
         <Campo id="lote" etiqueta="Lote" opcional error={campos.lote}>
           <input className="rc-input rc-num" id="lote" name="lote" inputMode="numeric" placeholder="Ej. 20471" {...ayuda('lote', campos)} />
         </Campo>
       </div>
       {!ultima && (
-        <Campo id="fechaProximaDosis" etiqueta="Próxima dosis" opcional error={campos.fechaProximaDosis}
+        <Campo id="fechaProximaDosis" etiqueta="Próxima dosis" opcional sinControl error={campos.fechaProximaDosis}
           ayuda="Con esta fecha el paciente aparece en Dosis vencidas si no regresa.">
-          <input className="rc-input rc-num" id="fechaProximaDosis" name="fechaProximaDosis" type="date" min={hoyISO()}
-            aria-describedby="fechaProximaDosis-ayuda" />
+          <SelectorFecha className="rc-num" id="fechaProximaDosis" name="fechaProximaDosis" min={hoyISO()}
+            invalido={!!campos.fechaProximaDosis} aria-describedby="fechaProximaDosis-ayuda" />
         </Campo>
       )}
       <Campo id="observacionesDosis" etiqueta="Observaciones" opcional clase="rc-control--area" error={campos.observaciones}>

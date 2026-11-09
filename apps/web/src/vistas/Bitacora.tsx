@@ -4,10 +4,13 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Download, FileText, Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FileText } from 'lucide-react';
 import { AccionBitacora } from '@red-clinica/shared';
 import { buscarBitacora, urlExportarBitacora, type PaginaBitacora } from '../api/auditoria';
 import { useSesion } from '../lib/sesion';
+import { CampoBusqueda } from '../componentes/CampoBusqueda';
+import { Selector } from '../componentes/Selector';
+import { SelectorFecha } from '../componentes/SelectorFecha';
 import { NOMBRE_ROL, formatoFechaHora, formatoNumero, inicialesDeNombre, varianteAvatar } from '../datos/formato';
 
 const POR_PAGINA = 25;
@@ -79,26 +82,14 @@ export default function Bitacora() {
         </div>
       </header>
       <div className="rc-toolbar">
-        <form className="rc-control rc-control--sm grow" role="search"
-          onSubmit={(e) => { e.preventDefault(); cambiar({ usuario: String(new FormData(e.currentTarget).get('usuario') ?? '').trim() || undefined }); }}>
-          <Search strokeWidth={1.75} aria-hidden="true" />
-          <input className="rc-input" name="usuario" key={filtros.usuario} defaultValue={filtros.usuario} placeholder="Usuario (p. ej. aperez)" aria-label="Usuario" />
-        </form>
-        <div className="rc-control rc-control--select rc-control--sm">
-          <select className="rc-input" aria-label="Acción" value={filtros.accion ?? ''} onChange={(e) => cambiar({ accion: e.target.value || undefined })}>
-            <option value="">Acción: todas</option>
-            {AccionBitacora.options.map((a) => <option key={a} value={a}>{ACCION[a].texto}</option>)}
-          </select>
-          <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-        </div>
-        <div className="rc-control rc-control--sm">
-          <CalendarDays strokeWidth={1.75} aria-hidden="true" />
-          <input className="rc-input" type="date" aria-label="Desde" value={filtros.desde ?? ''} onChange={(e) => cambiar({ desde: e.target.value || undefined })} />
-        </div>
-        <div className="rc-control rc-control--sm">
-          <CalendarDays strokeWidth={1.75} aria-hidden="true" />
-          <input className="rc-input" type="date" aria-label="Hasta" value={filtros.hasta ?? ''} onChange={(e) => cambiar({ hasta: e.target.value || undefined })} />
-        </div>
+        <CampoBusqueda valor={filtros.usuario ?? ''} onBuscar={(t) => cambiar({ usuario: t || undefined })}
+          placeholder="Usuario (p. ej. aperez)" etiqueta="Usuario" />
+        <Selector pequeno aria-label="Acción" value={filtros.accion ?? ''} onChange={(v) => cambiar({ accion: v || undefined })}>
+          <option value="">Acción: todas</option>
+          {AccionBitacora.options.map((a) => <option key={a} value={a}>{ACCION[a].texto}</option>)}
+        </Selector>
+        <SelectorFecha pequeno aria-label="Desde" placeholder="Desde" max={filtros.hasta} value={filtros.desde ?? ''} onChange={(f) => cambiar({ desde: f || undefined })} />
+        <SelectorFecha pequeno aria-label="Hasta" placeholder="Hasta" min={filtros.desde} value={filtros.hasta ?? ''} onChange={(f) => cambiar({ hasta: f || undefined })} />
         <button className="rc-btn rc-btn--ghost rc-btn--sm" disabled={!hayFiltros}
           onClick={() => cambiar({ usuario: undefined, accion: undefined, paciente: undefined, desde: undefined, hasta: undefined })}>
           Limpiar filtros

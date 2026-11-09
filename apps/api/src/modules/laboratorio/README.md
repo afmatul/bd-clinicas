@@ -45,8 +45,8 @@ Como solo hay adaptador para MongoDB, el módulo arma su propio mapa motor → r
 | Método | Ruta | Rol | Qué hace |
 | --- | --- | --- | --- |
 | GET | `/api/laboratorio/tipos` | Médico, enfermería, recepción | Catálogo para el formulario |
-| GET | `/api/laboratorio/examenes?tipo=&estado=&idPaciente=` | Médico, enfermería | Lista con paciente, conteo de 48 h y críticos |
-| GET | `/api/laboratorio/examenes/:id` | Médico, enfermería | Detalle con secciones interpretadas (bitácora `LEER`) |
+| GET | `/api/laboratorio/examenes?tipo=&estado=&idPaciente=` | Médico, enfermería, recepción | Lista con paciente, conteo de 48 h y críticos |
+| GET | `/api/laboratorio/examenes/:id` | Médico, enfermería, recepción | Detalle con secciones interpretadas (bitácora `LEER`) |
 | POST | `/api/laboratorio/examenes` | Médico, enfermería, recepción | Registra la muestra: queda `PENDIENTE` |
 | PUT | `/api/laboratorio/examenes/:id/resultados` | Médico (químico biólogo) | Captura o corrige: queda `EN_PROCESO` |
 | POST | `/api/laboratorio/examenes/:id/validar` | Médico (químico biólogo) | `EN_PROCESO` → `VALIDADO` |

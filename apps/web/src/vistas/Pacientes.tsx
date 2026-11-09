@@ -1,15 +1,20 @@
 'use client';
 // Vista "pacientes" del prototipo, conectada a GET /api/pacientes (mismo JSON en los cuatro motores).
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { ArrowUp, ChevronDown, ChevronLeft, ChevronRight, ChevronsUpDown, Download, MoreVertical, Search, UserPlus, Users } from 'lucide-react';
-import type { EstadoPaciente } from '@red-clinica/shared';
+import { ArrowUp, CalendarPlus, ChevronLeft, ChevronRight, ChevronsUpDown, Download, UserPlus, UserRound, Users } from 'lucide-react';
+import type { CitaDetalle, EstadoPaciente } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
 import { buscarPacientes, type PaginaPacientes } from '../api/pacientes';
-import { edad, formatoCui, formatoNumero, formatoSangre, formatoTelefono, iniciales, varianteAvatar } from '../datos/formato';
+import { proximasDelPaciente } from '../api/agenda';
+import { CampoBusqueda } from '../componentes/CampoBusqueda';
+import { MenuAcciones } from '../componentes/MenuAcciones';
+import { Selector } from '../componentes/Selector';
+import { edad, formatoCui, formatoNumero, formatoSangre, formatoTelefono, fechaSinAnio, iniciales, varianteAvatar } from '../datos/formato';
 
 const POR_PAGINA = 20;
+const REFRESCO_MS = 60_000;
 const SANGRE = ['O+', 'O-', 'A+', 'A-', 'B+', 'B-', 'AB+', 'AB-'];
 
 /** Páginas visibles como en el prototipo: 1 2 3 … última. */
@@ -34,6 +39,18 @@ export default function Pacientes() {
   const [datos, setDatos] = useState<PaginaPacientes | null>(null);
   const [conteo, setConteo] = useState<{ todos: number; activos: number; baja: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Cada minuto y al volver a la pestaña se vuelve a consultar, para no mostrar datos viejos.
+  const [version, setVersion] = useState(0);
+  const [citasProximas, setCitasProximas] = useState<Record<string, CitaDetalle | null>>({});
+  const pedidas = useRef(new Set<string>());
+
+  useEffect(() => {
+    const refrescar = () => { pedidas.current.clear(); setVersion((v) => v + 1); };
+    const cada = setInterval(refrescar, REFRESCO_MS);
+    const alVolver = () => { if (document.visibilityState === 'visible') refrescar(); };
+    document.addEventListener('visibilitychange', alVolver);
+    return () => { clearInterval(cada); document.removeEventListener('visibilitychange', alVolver); };
+  }, []);
 
   useEffect(() => {
     let vigente = true;
@@ -42,14 +59,25 @@ export default function Pacientes() {
       .then((d) => vigente && setDatos(d))
       .catch((e: Error) => vigente && setError(e.message));
     return () => { vigente = false; };
-  }, [q, estado, sexo, tipoSangre, pagina]);
+  }, [q, estado, sexo, tipoSangre, pagina, version]);
 
   useEffect(() => {
     Promise.all([
       buscarPacientes({ porPagina: 1 }),
       buscarPacientes({ estado: 'BAJA', porPagina: 1 }),
     ]).then(([t, b]) => setConteo({ todos: t.total, activos: t.total - b.total, baja: b.total })).catch(() => undefined);
-  }, []);
+  }, [version]);
+
+  // Próxima cita de cada paciente visible (una consulta por paciente, sin repetir las ya pedidas).
+  useEffect(() => {
+    for (const p of datos?.items ?? []) {
+      if (p.estado !== 'ACTIVO' || pedidas.current.has(p.id)) continue;
+      pedidas.current.add(p.id);
+      proximasDelPaciente(p.id)
+        .then((c) => setCitasProximas((m) => ({ ...m, [p.id]: c[0] ?? null })))
+        .catch(() => setCitasProximas((m) => ({ ...m, [p.id]: null })));
+    }
+  }, [datos]);
 
   const cambiar = (cambios: Record<string, string | undefined>) => {
     const p = new URLSearchParams(params);
@@ -98,26 +126,17 @@ export default function Pacientes() {
         </button>
       </div>
       <div className="rc-toolbar">
-        <form className="rc-control rc-control--sm grow" role="search"
-          onSubmit={(e) => { e.preventDefault(); cambiar({ q: String(new FormData(e.currentTarget).get('q') ?? '').trim() || undefined }); }}>
-          <Search strokeWidth={1.75} aria-hidden="true" />
-          <input className="rc-input" name="q" key={q} defaultValue={q} placeholder="Buscar por nombre, CUI o expediente" aria-label="Buscar paciente" />
-        </form>
-        <div className="rc-control rc-control--select rc-control--sm">
-          <select className="rc-input" aria-label="Sexo" value={sexo ?? ''} onChange={(e) => cambiar({ sexo: e.target.value || undefined })}>
-            <option value="">Sexo: todos</option>
-            <option value="F">Femenino</option>
-            <option value="M">Masculino</option>
-          </select>
-          <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-        </div>
-        <div className="rc-control rc-control--select rc-control--sm">
-          <select className="rc-input" aria-label="Tipo de sangre" value={tipoSangre ?? ''} onChange={(e) => cambiar({ sangre: e.target.value || undefined })}>
-            <option value="">Sangre: todos</option>
-            {SANGRE.map((s) => <option key={s} value={s}>{formatoSangre(s)}</option>)}
-          </select>
-          <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-        </div>
+        <CampoBusqueda valor={q} onBuscar={(t) => cambiar({ q: t || undefined })}
+          placeholder="Buscar por nombre o CUI" etiqueta="Buscar paciente" />
+        <Selector pequeno aria-label="Sexo" value={sexo ?? ''} onChange={(v) => cambiar({ sexo: v || undefined })}>
+          <option value="">Sexo: todos</option>
+          <option value="F">Femenino</option>
+          <option value="M">Masculino</option>
+        </Selector>
+        <Selector pequeno aria-label="Tipo de sangre" value={tipoSangre ?? ''} onChange={(v) => cambiar({ sangre: v || undefined })}>
+          <option value="">Sangre: todos</option>
+          {SANGRE.map((s) => <option key={s} value={s}>{formatoSangre(s)}</option>)}
+        </Selector>
         <button className="rc-btn rc-btn--ghost rc-btn--sm" disabled={!hayFiltros} onClick={() => cambiar({ q: undefined, sexo: undefined, sangre: undefined })}>
           Limpiar filtros
         </button>
@@ -189,17 +208,22 @@ export default function Pacientes() {
                   <td className="hide-sm">{p.sexo ?? '—'}</td>
                   <td className="hide-sm">{formatoSangre(p.tipoSangre)}</td>
                   <td className="rc-num hide-sm">{formatoTelefono(p.telefono)}</td>
-                  {/* Próxima cita: llega con el módulo agenda. */}
-                  <td className="rc-num hide-sm">—</td>
+                  <td className="rc-num hide-sm">
+                    {p.estado !== 'ACTIVO' ? '—' : !(p.id in citasProximas) ? <span className="rc-skeleton" style={{ display: 'inline-block', height: '14px', width: '90px' }} />
+                      : citasProximas[p.id] ? `${fechaSinAnio(citasProximas[p.id]!.fecha)}, ${citasProximas[p.id]!.hora}` : '—'}
+                  </td>
                   <td>
                     {p.estado === 'ACTIVO'
                       ? <span className="rc-pill rc-pill--success"><span className="rc-pill__dot" />Activo</span>
                       : <span className="rc-pill"><span className="rc-pill__dot" />De baja</span>}
                   </td>
                   <td className="rc-cell-actions">
-                    <button className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label={`Acciones para ${nombre}`}>
-                      <MoreVertical strokeWidth={1.75} aria-hidden="true" />
-                    </button>
+                    <MenuAcciones etiqueta={`Acciones para ${nombre}`} acciones={[
+                      { clave: 'ficha', etiqueta: 'Ver ficha', icono: <UserRound strokeWidth={1.75} aria-hidden="true" />, href: `/pacientes/${p.id}` },
+                      ...(p.estado === 'ACTIVO'
+                        ? [{ clave: 'cita', etiqueta: 'Agendar cita', icono: <CalendarPlus strokeWidth={1.75} aria-hidden="true" />, href: `/nueva-cita?${new URLSearchParams({ paciente: p.id })}` }]
+                        : []),
+                    ]} />
                   </td>
                 </tr>
               );

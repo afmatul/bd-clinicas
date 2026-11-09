@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import type { DocumentScope, MangoQuery } from 'nano';
 import type { BuscarPacientesQuery, PacienteResumen, RegistrarPacienteInput } from '@red-clinica/shared';
-import { patronSinAcentos } from '../../../../shared/texto.js';
+import { digitosDeCui, palabrasDeBusqueda, patronSinAcentos } from '../../../../shared/texto.js';
 import type { Baja, PacienteDatos } from '../../domain/paciente.js';
 import type { PacienteRepository } from '../../ports/paciente-repository.js';
 
@@ -41,8 +41,14 @@ export class CouchPacienteRepository implements PacienteRepository {
     const selector: MangoQuery['selector'] = { type: 'paciente' };
     if (q.q) {
       // (*UTF8): el regex de Erlang trata la cadena como bytes si no se le indica; sin esto "[oó]" no coincide.
-      const re = `(*UTF8)(?i)${patronSinAcentos(q.q)}`;
-      selector.$or = [{ cui: q.q }, { apellidos: { $regex: re } }, { nombres: { $regex: re } }];
+      const porNombre = palabrasDeBusqueda(q.q).map((palabra) => {
+        const re = `(*UTF8)(?i)${patronSinAcentos(palabra)}`;
+        return { $or: [{ nombres: { $regex: re } }, { apellidos: { $regex: re } }] };
+      });
+      const alternativas: object[] = [{ $and: porNombre }];
+      const cui = digitosDeCui(q.q);
+      if (cui) alternativas.push({ cui: { $regex: cui } });
+      selector.$or = alternativas;
     }
     if (q.estado) selector.estado = q.estado;
     if (q.sexo) selector.sexo = q.sexo;

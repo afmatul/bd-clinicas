@@ -5,9 +5,11 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
-  ArrowDown, ArrowUp, Check, ChevronDown, CircleAlert, CircleCheck, Clock, FlaskConical, Info, Loader2, Pencil,
+  ArrowDown, ArrowUp, Check, CircleAlert, CircleCheck, Clock, FlaskConical, Info, Loader2, Pencil,
   Plus, Printer, Search, Send, ShieldCheck, Trash2, TriangleAlert, X,
 } from 'lucide-react';
+import { Selector } from '../componentes/Selector';
+import { PAUSA_BUSQUEDA_MS } from '../componentes/CampoBusqueda';
 import type {
   CapturarResultadosInput, EstadoExamen, ExamenDetalle, ExamenResumen, Interpretacion, ListaExamenes,
   PacienteResumen, SeccionResultado, TipoExamen, TipoExamenClave,
@@ -177,13 +179,10 @@ function FormularioCaptura({ tipo, examen, onGuardado, onCancelar }: {
                     {c.nombre} {c.obligatorio && <span className="rc-req" aria-hidden="true">*</span>}
                   </label>
                   {c.tipo === 'opcion' ? (
-                    <div className="rc-control rc-control--select">
-                      <select className="rc-input" id={id} value={valor} onChange={(e) => cambiar(e.target.value)}>
-                        <option value="">Sin dato</option>
-                        {c.opciones?.map((o) => <option key={o} value={o}>{o}</option>)}
-                      </select>
-                      <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-                    </div>
+                    <Selector id={id} value={valor} onChange={cambiar}>
+                      <option value="">Sin dato</option>
+                      {c.opciones?.map((o) => <option key={o} value={o}>{o}</option>)}
+                    </Selector>
                   ) : (
                     <div className={`rc-control ${c.tipo === 'numero' ? 'rc-num' : ''}`}>
                       <input className="rc-input" id={id} value={valor} inputMode={c.tipo === 'numero' ? 'decimal' : undefined}
@@ -208,15 +207,12 @@ function FormularioCaptura({ tipo, examen, onGuardado, onCancelar }: {
                 <input className="rc-input" aria-label="Antibiótico" placeholder="Antibiótico" value={a.antibiotico}
                   onChange={(e) => setAntibiograma((l) => l.map((x, j) => (j === i ? { ...x, antibiotico: e.target.value } : x)))} />
               </div>
-              <div className="rc-control rc-control--select rc-control--sm">
-                <select className="rc-input" aria-label="Interpretación" value={a.interpretacion}
-                  onChange={(e) => setAntibiograma((l) => l.map((x, j) => (j === i ? { ...x, interpretacion: e.target.value as 'S' | 'I' | 'R' } : x)))}>
-                  <option value="S">Sensible</option>
-                  <option value="I">Intermedio</option>
-                  <option value="R">Resistente</option>
-                </select>
-                <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-              </div>
+              <Selector pequeno aria-label="Interpretación" value={a.interpretacion}
+                onChange={(v) => setAntibiograma((l) => l.map((x, j) => (j === i ? { ...x, interpretacion: v as 'S' | 'I' | 'R' } : x)))}>
+                <option value="S">Sensible</option>
+                <option value="I">Intermedio</option>
+                <option value="R">Resistente</option>
+              </Selector>
               <button type="button" className="rc-btn rc-btn--ghost rc-btn--neutral rc-btn--icon rc-btn--sm" aria-label="Quitar antibiótico"
                 onClick={() => setAntibiograma((l) => l.filter((_, j) => j !== i))}>
                 <Trash2 strokeWidth={1.75} aria-hidden="true" />
@@ -393,11 +389,11 @@ function ModalRegistrar({ tipos, tipoInicial, onCerrar, onCreado }: {
   }, [onCerrar]);
 
   useEffect(() => {
-    if (paciente || texto.trim().length < 2) { setOpciones([]); return; }
+    if (paciente || !texto.trim()) { setOpciones([]); return; }
     let vigente = true;
     const t = setTimeout(() => {
       buscarPacientes({ q: texto.trim(), estado: 'ACTIVO', porPagina: 6 }).then((r) => vigente && setOpciones(r.items)).catch(() => undefined);
-    }, 250);
+    }, PAUSA_BUSQUEDA_MS);
     return () => { vigente = false; clearTimeout(t); };
   }, [texto, paciente]);
 
@@ -462,12 +458,9 @@ function ModalRegistrar({ tipos, tipoInicial, onCerrar, onCreado }: {
           </div>
           <div className="rc-field">
             <label className="rc-label" htmlFor="mr-tipo">Tipo de examen <span className="rc-req" aria-hidden="true">*</span></label>
-            <div className="rc-control rc-control--select">
-              <select className="rc-input" id="mr-tipo" value={tipo} onChange={(e) => setTipo(e.target.value as TipoExamenClave)}>
-                {tipos.map((t) => <option key={t.clave} value={t.clave}>{t.nombre}</option>)}
-              </select>
-              <ChevronDown strokeWidth={1.75} className="rc-chevron" aria-hidden="true" />
-            </div>
+            <Selector id="mr-tipo" value={tipo} onChange={(v) => setTipo(v as TipoExamenClave)}>
+              {tipos.map((t) => <option key={t.clave} value={t.clave}>{t.nombre}</option>)}
+            </Selector>
             <div className="rc-help">Muestra: {tipos.find((t) => t.clave === tipo)?.muestra}</div>
           </div>
           <div className="rc-field">

@@ -1,7 +1,7 @@
 import type pg from 'pg';
 import type { BuscarPacientesQuery, PacienteResumen, RegistrarPacienteInput } from '@red-clinica/shared';
 import { edadEnAnios } from '../../../../shared/fechas.js';
-import { patronSinAcentos } from '../../../../shared/texto.js';
+import { digitosDeCui, palabrasDeBusqueda, patronSinAcentos } from '../../../../shared/texto.js';
 import type { Baja, PacienteDatos } from '../../domain/paciente.js';
 import type { PacienteRepository } from '../../ports/paciente-repository.js';
 
@@ -13,8 +13,17 @@ export class PostgresPacienteRepository implements PacienteRepository {
     const where: string[] = [];
     const params: unknown[] = [];
     if (q.q) {
-      params.push(q.q, patronSinAcentos(q.q));
-      where.push(`(cui = $1 OR apellidos ~* $2 OR nombres ~* $2)`);
+      const porNombre = palabrasDeBusqueda(q.q).map((palabra) => {
+        params.push(patronSinAcentos(palabra));
+        return `(nombres || ' ' || apellidos) ~* $${params.length}`;
+      });
+      const alternativas = [`(${porNombre.join(' AND ')})`];
+      const cui = digitosDeCui(q.q);
+      if (cui) {
+        params.push(`%${cui}%`);
+        alternativas.push(`cui LIKE $${params.length}`);
+      }
+      where.push(`(${alternativas.join(' OR ')})`);
     }
     for (const [col, v] of [['estado', q.estado], ['sexo', q.sexo], ['tipo_sangre', q.tipoSangre]] as const) {
       if (!v) continue;

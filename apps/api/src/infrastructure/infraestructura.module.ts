@@ -7,7 +7,8 @@ import type { Institucion } from '../modules/identidad/ports/usuario-repository.
 import { BitacoraPlataforma } from '../modules/auditoria/adapters/bitacora-plataforma.js';
 import { crearAuditoria } from '../modules/auditoria/application/registrar-en-bitacora.js';
 import type { Bitacora } from '../modules/auditoria/ports/bitacora.js';
-import { AUDITORIA, BITACORA, CONEXIONES, ENV, INSTITUCIONES, REGISTRO } from '../tokens.js';
+import { crearResolverMedicoAdmin } from './medico-demostracion.js';
+import { AUDITORIA, BITACORA, CONEXIONES, ENV, INSTITUCIONES, MEDICO_ADMIN, REGISTRO } from '../tokens.js';
 
 /**
  * Infraestructura compartida por todos los módulos: conexiones (abiertas una vez al arrancar),
@@ -29,10 +30,11 @@ import { AUDITORIA, BITACORA, CONEXIONES, ENV, INSTITUCIONES, REGISTRO } from '.
       },
       inject: [CONEXIONES],
     },
+    { provide: MEDICO_ADMIN, useFactory: (r: RegistroDeAdaptadores) => crearResolverMedicoAdmin(r), inject: [REGISTRO] },
     { provide: BITACORA, useFactory: (c: Conexiones) => new BitacoraPlataforma(c.plataforma), inject: [CONEXIONES] },
     { provide: AUDITORIA, useFactory: (b: Bitacora) => crearAuditoria(b), inject: [BITACORA] },
   ],
-  exports: [ENV, CONEXIONES, REGISTRO, INSTITUCIONES, BITACORA, AUDITORIA],
+  exports: [ENV, CONEXIONES, REGISTRO, INSTITUCIONES, MEDICO_ADMIN, BITACORA, AUDITORIA],
 })
 export class InfraestructuraModule implements OnApplicationShutdown {
   constructor(@Inject(CONEXIONES) private readonly conexiones: Conexiones) {}

@@ -6,6 +6,7 @@ export interface UsuarioRepository {
   buscarPorId(id: string): Promise<UsuarioCredenciales | null>;
   registrarFallo(id: string, intentos: number, bloqueadoHasta: Date | null): Promise<void>;
   registrarAcceso(id: string): Promise<void>;
+  actualizarDatos(id: string, cambios: { nombre?: string; passwordHash?: string }): Promise<void>;
 }
 
 export interface Institucion {

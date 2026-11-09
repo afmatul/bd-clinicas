@@ -3,7 +3,8 @@
 // y búsqueda del menor para abrir su curva y carné.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { CircleCheck, Search, Syringe, Users } from 'lucide-react';
+import { CircleCheck, Syringe, Users } from 'lucide-react';
+import { CampoBusqueda } from '../componentes/CampoBusqueda';
 import type { DosisVencida, PacienteResumen } from '@red-clinica/shared';
 import { useSesion } from '../lib/sesion';
 import { dosisVencidas } from '../api/pediatria';
@@ -111,11 +112,8 @@ export default function CrecimientoInicio() {
         <aside className="col">
           <section className="rc-card">
             <h2 className="rc-card__title">Abrir expediente</h2>
-            <form className="rc-control rc-control--sm" role="search"
-              onSubmit={(e) => { e.preventDefault(); setQ(String(new FormData(e.currentTarget).get('q') ?? '').trim()); }}>
-              <Search strokeWidth={1.75} aria-hidden="true" />
-              <input className="rc-input" name="q" placeholder="Nombre o CUI del paciente" aria-label="Buscar paciente" />
-            </form>
+            <CampoBusqueda valor={q} onBuscar={setQ} className="rc-control rc-control--sm"
+              placeholder="Nombre o CUI del paciente" etiqueta="Buscar paciente" />
             <div className="list">
               {!resultados && <span className="rc-skeleton" style={{ display: 'block', height: '40px' }} />}
               {resultados?.map((p) => (

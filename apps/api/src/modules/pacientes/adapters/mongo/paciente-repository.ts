@@ -1,7 +1,7 @@
 import { ObjectId, type Collection, type Db, type Filter } from 'mongodb';
 import type { BuscarPacientesQuery, PacienteResumen, RegistrarPacienteInput } from '@red-clinica/shared';
 import { aFechaISO } from '../../../../shared/fechas.js';
-import { patronSinAcentos } from '../../../../shared/texto.js';
+import { digitosDeCui, palabrasDeBusqueda, patronSinAcentos } from '../../../../shared/texto.js';
 import type { Baja, PacienteDatos } from '../../domain/paciente.js';
 import type { PacienteRepository } from '../../ports/paciente-repository.js';
 
@@ -35,8 +35,14 @@ export class MongoPacienteRepository implements PacienteRepository {
   async buscar(q: BuscarPacientesQuery) {
     const filtro: Filter<PacienteDoc> = {};
     if (q.q) {
-      const re = new RegExp(patronSinAcentos(q.q), 'i');
-      filtro.$or = [{ cui: q.q }, { apellidos: re }, { nombres: re }];
+      const porNombre = palabrasDeBusqueda(q.q).map((palabra) => {
+        const re = new RegExp(patronSinAcentos(palabra), 'i');
+        return { $or: [{ nombres: re }, { apellidos: re }] };
+      });
+      const alternativas: Filter<PacienteDoc>[] = [{ $and: porNombre }];
+      const cui = digitosDeCui(q.q);
+      if (cui) alternativas.push({ cui: new RegExp(cui) });
+      filtro.$or = alternativas;
     }
     if (q.estado) filtro.estado = q.estado;
     if (q.sexo) filtro.sexo = q.sexo;

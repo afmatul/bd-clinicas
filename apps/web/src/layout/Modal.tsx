@@ -18,11 +18,11 @@ export function Modal({ titulo, icono: Icono, tono = 'primary', onCerrar, childr
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const previo = document.activeElement as HTMLElement | null;
-    ref.current?.querySelector<HTMLElement>('input, select, textarea, button:not([aria-label="Cerrar"])')?.focus();
+    ref.current?.querySelector<HTMLElement>('input:not([type="hidden"]), select, textarea, button:not([aria-label="Cerrar"])')?.focus();
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onCerrar();
       if (e.key !== 'Tab' || !ref.current) return;
-      const f = [...ref.current.querySelectorAll<HTMLElement>('input, select, textarea, button, a[href]')].filter((x) => !x.hasAttribute('disabled'));
+      const f = [...ref.current.querySelectorAll<HTMLElement>('input:not([type="hidden"]), select, textarea, button, a[href]')].filter((x) => !x.hasAttribute('disabled'));
       if (!f.length) return;
       if (e.shiftKey && document.activeElement === f[0]) { e.preventDefault(); f[f.length - 1]!.focus(); }
       else if (!e.shiftKey && document.activeElement === f[f.length - 1]) { e.preventDefault(); f[0]!.focus(); }

@@ -2,6 +2,7 @@ import type mysql from 'mysql2/promise';
 import type { RowDataPacket, ResultSetHeader } from 'mysql2/promise';
 import type { BuscarPacientesQuery, PacienteResumen, RegistrarPacienteInput } from '@red-clinica/shared';
 import { edadEnAnios } from '../../../../shared/fechas.js';
+import { digitosDeCui, palabrasDeBusqueda } from '../../../../shared/texto.js';
 import type { Baja, PacienteDatos } from '../../domain/paciente.js';
 import type { PacienteRepository } from '../../ports/paciente-repository.js';
 
@@ -16,8 +17,18 @@ export class MysqlPacienteRepository implements PacienteRepository {
     const where: string[] = [];
     const params: unknown[] = [];
     if (q.q) {
-      where.push(`(p.cui = ? OR p.apellidos LIKE ? OR p.nombres LIKE ?)`);
-      params.push(q.q, `%${q.q}%`, `%${q.q}%`);
+      // La collation *_ai_ci ignora mayúsculas y acentos; cada palabra debe estar en el nombre completo.
+      const porNombre = palabrasDeBusqueda(q.q).map((palabra) => {
+        params.push(`%${palabra.replace(/[\\%_]/g, '\\$&')}%`);
+        return `CONCAT(p.nombres, ' ', p.apellidos) LIKE ?`;
+      });
+      const alternativas = [`(${porNombre.join(' AND ')})`];
+      const cui = digitosDeCui(q.q);
+      if (cui) {
+        params.push(`%${cui}%`);
+        alternativas.push(`p.cui LIKE ?`);
+      }
+      where.push(`(${alternativas.join(' OR ')})`);
     }
     for (const [col, v] of [['p.estado', q.estado], ['p.sexo', q.sexo], ['p.tipo_sangre', q.tipoSangre]] as const) {
       if (!v) continue;
